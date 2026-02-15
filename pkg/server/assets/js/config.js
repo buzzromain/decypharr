@@ -702,11 +702,22 @@ class ConfigManager {
 
                     <div>
                         <label class="label cursor-pointer justify-start gap-2">
-                            <input type="checkbox" class="checkbox checkbox-primary" 
+                            <input type="checkbox" class="checkbox checkbox-primary"
                                    name="debrid[${index}].unpack_rar" id="debrid[${index}].unpack_rar">
                              <div>
                                 <span class="font-medium">Unpack RAR</span>
                                 <div class="label-text-alt">Preprocess RAR files</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="label cursor-pointer justify-start gap-2">
+                            <input type="checkbox" class="checkbox checkbox-primary"
+                                   name="debrid[${index}].use_torrent_file" id="debrid[${index}].use_torrent_file" checked>
+                            <div>
+                                <span class="font-medium">Use Torrent File</span>
+                                <div class="label-text-alt">Send .torrent file to provider instead of magnet link when available</div>
                             </div>
                         </label>
                     </div>
@@ -1454,6 +1465,7 @@ class ConfigManager {
             const addSamplesInput = getField('add_samples');
             const userAgentInput = getField('user_agent');
             const slotStrategyInput = getField('slot_strategy');
+            const useTorrentFileInput = getField('use_torrent_file');
             const downloadKeysTextarea = getField('download_api_keys');
             const torrentsRefreshIntervalInput = getField('torrents_refresh_interval');
             const downloadLinksRefreshIntervalInput = getField('download_links_refresh_interval');
@@ -1477,6 +1489,7 @@ class ConfigManager {
                 download_uncached: downloadUncachedInput.checked,
                 unpack_rar: unpackRarInput.checked,
                 add_samples: addSamplesInput.checked,
+                use_torrent_file: useTorrentFileInput?.checked ?? true,
                 user_agent: userAgentInput.value,
                 slot_strategy: slotStrategyInput?.value || ""
             };
