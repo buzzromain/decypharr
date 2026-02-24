@@ -278,7 +278,7 @@ func (s *SABnzbd) handleAddURL(w http.ResponseWriter, r *http.Request) {
 
 	if _arr == nil {
 		// If Arr is not in context, create a new one with default values
-		_arr = arr.New(cat, "", "", false, false, nil, "", "")
+		_arr = arr.New(cat, "", "", false, false, false, nil, "", "")
 	}
 
 	if r.Method != http.MethodPost {
@@ -352,7 +352,7 @@ func (s *SABnzbd) handleAddFile(w http.ResponseWriter, r *http.Request) {
 
 	if _arr == nil {
 		// If Arr is not in context, create a new one with default values
-		_arr = arr.New(cat, "", "", false, false, nil, "", "")
+		_arr = arr.New(cat, "", "", false, false, false, nil, "", "")
 	}
 
 	if r.Method != http.MethodPost {

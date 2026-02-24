@@ -77,13 +77,14 @@ type Arr struct {
 	Token            string `json:"token,omitempty"`
 	Cleanup          bool   `json:"cleanup,omitempty"`
 	SkipRepair       bool   `json:"skip_repair,omitempty"`
+	AllowDelete      bool   `json:"allow_delete,omitempty"`
 	DownloadUncached *bool  `json:"download_uncached,omitempty"`
 	SelectedDebrid   string `json:"selected_debrid,omitempty"`
 	Source           string `json:"source,omitempty"` // The source of the arr, e.g. "auto", "config", "". Auto means it was automatically detected from the arr
 }
 
 func (a Arr) IsZero() bool {
-	return a.Name == "" && a.Host == "" && a.Token == "" && !a.Cleanup && !a.SkipRepair && a.DownloadUncached == nil && a.SelectedDebrid == "" && a.Source == ""
+	return a.Name == "" && a.Host == "" && a.Token == "" && !a.Cleanup && !a.SkipRepair && !a.AllowDelete && a.DownloadUncached == nil && a.SelectedDebrid == "" && a.Source == ""
 }
 
 type CustomFolders struct {

@@ -139,7 +139,7 @@ func (q *QBit) authenticate(category, username, password string) (*arr.Arr, erro
 	if a == nil {
 		// Arr is not configured, create a new one
 		downloadUncached := false
-		a = arr.New(category, username, password, false, false, &downloadUncached, "", "auto")
+		a = arr.New(category, username, password, false, false, false, &downloadUncached, "", "auto")
 	}
 	arrValidated := false // This is a flag to indicate if arr validation was successful
 	if (username == "" || password == "") && cfg.UseAuth {
