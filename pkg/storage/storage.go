@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-var storeNames = []string{"entries", "queue", "items", "repair_jobs", "repair_keys"}
+var storeNames = []string{"entries", "queue", "items", "repair_jobs", "repair_keys", "arr_refs"}
 
 // Storage handles persistence using HybridStore
 type Storage struct {
@@ -22,6 +22,7 @@ type Storage struct {
 	entryItems *hybrid.Store // name -> infohash index
 	repairJobs *hybrid.Store // repair jobs
 	repairKeys *hybrid.Store // repair unique keys
+	arrFiles   *hybrid.Store // ARR managed files index
 	dir        string
 	logger     zerolog.Logger
 }
@@ -72,6 +73,7 @@ func NewStorage(dbPath string) (*Storage, error) {
 	entryItems := itemStores["items"]
 	repairJobs := itemStores["repair_jobs"]
 	repairKeys := itemStores["repair_keys"]
+	arrFiles := itemStores["arr_refs"]
 
 	s := &Storage{
 		entries:    entries,
@@ -79,6 +81,7 @@ func NewStorage(dbPath string) (*Storage, error) {
 		entryItems: entryItems,
 		repairJobs: repairJobs,
 		repairKeys: repairKeys,
+		arrFiles:   arrFiles,
 		dir:        dbPath,
 		logger:     log,
 	}
@@ -88,6 +91,8 @@ func NewStorage(dbPath string) (*Storage, error) {
 	} else if count > 0 {
 		log.Info().Int("count", count).Msg("Migrated entry metadata to new format")
 	}
+
+	s.initArrFilesStore()
 
 	return s, nil
 }
@@ -120,6 +125,11 @@ func (s *Storage) Close() error {
 			errs = append(errs, err)
 		}
 	}
+	if s.arrFiles != nil {
+		if err := s.arrFiles.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
 	if len(errs) > 0 {
 		return fmt.Errorf("errors closing storage: %v", errs)
 	}
@@ -129,7 +139,7 @@ func (s *Storage) Close() error {
 // DiskSize returns the total on-disk size of all stores (O(1), no filesystem walk).
 func (s *Storage) DiskSize() int64 {
 	var size int64
-	for _, store := range []*hybrid.Store{s.entries, s.queue, s.entryItems, s.repairJobs, s.repairKeys} {
+	for _, store := range []*hybrid.Store{s.entries, s.queue, s.entryItems, s.repairJobs, s.repairKeys, s.arrFiles} {
 		if store != nil {
 			size += store.DiskSize()
 		}
@@ -199,6 +209,14 @@ func (s *Storage) copyFrom(other *Storage) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to copy repair keys: %w", err)
+	}
+
+	// Copy arr files
+	err = other.arrFiles.ForEach(func(key string, value []byte) error {
+		return s.arrFiles.Put(key, value, nil)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to copy arr files: %w", err)
 	}
 
 	return nil
