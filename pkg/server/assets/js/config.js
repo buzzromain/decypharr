@@ -1014,7 +1014,7 @@ class ConfigManager {
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-4 gap-4">
                         <div>
                             <label class="label cursor-pointer justify-start gap-2">
                                 <input type="checkbox" class="checkbox checkbox-sm checkbox-primary"
@@ -1036,6 +1036,14 @@ class ConfigManager {
                                 <input type="checkbox" class="checkbox checkbox-sm checkbox-primary"
                                        name="arr[${index}].download_uncached" id="arr[${index}].download_uncached">
                                 <span class=" text-sm">Download Uncached</span>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label class="label cursor-pointer justify-start gap-2">
+                                <input type="checkbox" class="checkbox checkbox-sm checkbox-primary"
+                                       name="arr[${index}].allow_delete" id="arr[${index}].allow_delete">
+                                <span class=" text-sm">Allow Delete</span>
                             </label>
                         </div>
                     </div>
@@ -1283,6 +1291,7 @@ class ConfigManager {
                 token: document.querySelector(`[name="arr[${i}].token"]`).value,
                 cleanup: document.querySelector(`[name="arr[${i}].cleanup"]`).checked,
                 skip_repair: document.querySelector(`[name="arr[${i}].skip_repair"]`).checked,
+                allow_delete: document.querySelector(`[name="arr[${i}].allow_delete"]`).checked,
                 download_uncached: document.querySelector(`[name="arr[${i}].download_uncached"]`).checked,
                 selected_debrid: document.querySelector(`[name="arr[${i}].selected_debrid"]`).value,
                 source: document.querySelector(`[name="arr[${i}].source"]`).value
