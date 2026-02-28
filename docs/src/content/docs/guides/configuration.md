@@ -290,6 +290,7 @@ Connect to an existing Rclone instance's RC API.
       "cleanup": true,
       "skip_repair": false,
       "download_uncached": false,
+      "allow_delete": false,
       "selected_debrid": ""
     }
   ]
@@ -304,6 +305,7 @@ Connect to an existing Rclone instance's RC API.
 | `cleanup` | Auto-remove completed downloads | `true` |
 | `skip_repair` | Skip repair for this Arr | `false` |
 | `download_uncached` | Download uncached torrents | `false` |
+| `allow_delete` | Delete debrid entry when media is removed from Arr | `false` |
 | `selected_debrid` | Force specific Debrid provider | `""` (auto) |
 | `source` | Config source (`auto`, `config`) | `config` |
 
