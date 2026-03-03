@@ -120,10 +120,11 @@ func (s *Server) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
 	data := map[string]interface{}{
-		"URLBase":    cfg.URLBase,
-		"Page":       "index",
-		"Title":      "Queues",
-		"SetupError": cfg.SetupError(),
+		"URLBase":     cfg.URLBase,
+		"Page":        "index",
+		"Title":       "Queues",
+		"SetupError":  cfg.SetupError(),
+		"ManagedOnly": cfg.ManagedOnly,
 	}
 	err := s.templates.ExecuteTemplate(w, "layout", data)
 	if err != nil {

@@ -29,6 +29,7 @@ class ConfigManager {
         this.loadConfiguration();
         this.setupMagnetHandler();
         this.checkIncompleteConfig();
+        this.setupMaintenanceHandlers();
     }
 
     checkIncompleteConfig() {
@@ -101,6 +102,8 @@ class ConfigManager {
 
         // Load notifications config
         this.populateNotificationSettings(config.notifications);
+
+        this.populateProviderSelect(config.debrids);
     }
 
     populateGeneralSettings(config) {
@@ -109,14 +112,18 @@ class ConfigManager {
             'min_file_size', 'max_file_size', 'remove_stalled_after',
             'nzb_user_agent', 'download_folder', 'refresh_interval',
             'max_downloads', 'skip_pre_cache', 'always_rm_tracker_urls',
-            'folder_naming', 'refresh_dirs',
+            'managed_only', 'folder_naming', 'refresh_dirs',
             'default_download_action', 'download_connections'
         ];
 
         fields.forEach(field => {
             const element = document.querySelector(`[name="${field}"]`);
             if (element && config[field] !== undefined) {
-                element.value = config[field];
+                if (element.type === 'checkbox') {
+                    element.checked = config[field];
+                } else {
+                    element.value = config[field];
+                }
             }
         });
 
@@ -1163,6 +1170,7 @@ class ConfigManager {
             download_connections: parseInt(document.querySelector('[name="download_connections"]').value) || 16,
             skip_pre_cache: document.querySelector('[name="skip_pre_cache"]').checked,
             always_rm_tracker_urls: document.querySelector('[name="always_rm_tracker_urls"]').checked,
+            managed_only: document.querySelector('[name="managed_only"]').checked,
             folder_naming: document.querySelector('[name="folder_naming"]')?.value || "",
             refresh_dirs: document.querySelector('[name="refresh_dirs"]')?.value || "",
             custom_folders: this.collectVirtualFolders(),
@@ -1768,5 +1776,122 @@ class ConfigManager {
             </div>
         </div>
         `;
+    }
+
+    populateProviderSelect(debrids) {
+        const select = document.getElementById('purgeProviderSelect');
+        if (!select || !debrids) return;
+        debrids.forEach(d => {
+            if (d.name) {
+                const opt = document.createElement('option');
+                opt.value = d.name;
+                opt.textContent = d.name;
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    setupMaintenanceHandlers() {
+        // Local purge
+        const localScanBtn = document.getElementById('purgeLocalScanBtn');
+        const localPurgeBtn = document.getElementById('purgeLocalBtn');
+        const localResult = document.getElementById('purgeLocalResult');
+        const localCount = document.getElementById('purgeLocalCount');
+
+        if (localScanBtn) {
+            localScanBtn.addEventListener('click', async () => {
+                window.decypharrUtils.setButtonLoading(localScanBtn, true);
+                try {
+                    const resp = await window.decypharrUtils.fetcher('/api/maintenance/purge/local');
+                    if (!resp.ok) throw new Error(await resp.text());
+                    const data = await resp.json();
+                    localCount.textContent = data.count;
+                    localResult.classList.remove('hidden');
+                    if (data.count > 0) {
+                        localPurgeBtn.classList.remove('hidden');
+                    } else {
+                        localPurgeBtn.classList.add('hidden');
+                    }
+                } catch (err) {
+                    window.decypharrUtils.createToast('Scan failed: ' + err.message, 'error');
+                } finally {
+                    window.decypharrUtils.setButtonLoading(localScanBtn, false);
+                }
+            });
+        }
+
+        if (localPurgeBtn) {
+            localPurgeBtn.addEventListener('click', async () => {
+                if (!confirm('Are you sure you want to remove all unmanaged entries from Decypharr? This cannot be undone.')) return;
+                window.decypharrUtils.setButtonLoading(localPurgeBtn, true);
+                try {
+                    const resp = await window.decypharrUtils.fetcher('/api/maintenance/purge/local', { method: 'DELETE' });
+                    if (!resp.ok) throw new Error(await resp.text());
+                    const data = await resp.json();
+                    window.decypharrUtils.createToast(`Purged ${data.deleted} entries.`, 'success');
+                    localResult.classList.add('hidden');
+                    localPurgeBtn.classList.add('hidden');
+                } catch (err) {
+                    window.decypharrUtils.createToast('Purge failed: ' + err.message, 'error');
+                } finally {
+                    window.decypharrUtils.setButtonLoading(localPurgeBtn, false);
+                }
+            });
+        }
+
+        // Provider purge
+        const providerScanBtn = document.getElementById('purgeProviderScanBtn');
+        const providerPurgeBtn = document.getElementById('purgeProviderBtn');
+        const providerResult = document.getElementById('purgeProviderResult');
+        const providerCount = document.getElementById('purgeProviderCount');
+        const providerSelect = document.getElementById('purgeProviderSelect');
+
+        if (providerScanBtn) {
+            providerScanBtn.addEventListener('click', async () => {
+                const provider = providerSelect?.value;
+                if (!provider) {
+                    window.decypharrUtils.createToast('Please select a provider first.', 'warning');
+                    return;
+                }
+                window.decypharrUtils.setButtonLoading(providerScanBtn, true);
+                try {
+                    const resp = await window.decypharrUtils.fetcher(`/api/maintenance/purge/provider/${provider}`);
+                    if (!resp.ok) throw new Error(await resp.text());
+                    const data = await resp.json();
+                    providerCount.textContent = data.count;
+                    providerResult.classList.remove('hidden');
+                    if (data.count > 0) {
+                        providerPurgeBtn.classList.remove('hidden');
+                    } else {
+                        providerPurgeBtn.classList.add('hidden');
+                    }
+                } catch (err) {
+                    window.decypharrUtils.createToast('Scan failed: ' + err.message, 'error');
+                } finally {
+                    window.decypharrUtils.setButtonLoading(providerScanBtn, false);
+                }
+            });
+        }
+
+        if (providerPurgeBtn) {
+            providerPurgeBtn.addEventListener('click', async () => {
+                const provider = providerSelect?.value;
+                if (!provider) return;
+                if (!confirm(`WARNING: This will permanently delete unmanaged torrents from ${provider}. This cannot be undone. Continue?`)) return;
+                window.decypharrUtils.setButtonLoading(providerPurgeBtn, true);
+                try {
+                    const resp = await window.decypharrUtils.fetcher(`/api/maintenance/purge/provider/${provider}`, { method: 'DELETE' });
+                    if (!resp.ok) throw new Error(await resp.text());
+                    const data = await resp.json();
+                    window.decypharrUtils.createToast(`Purged ${data.deleted} torrents from ${provider}.`, 'success');
+                    providerResult.classList.add('hidden');
+                    providerPurgeBtn.classList.add('hidden');
+                } catch (err) {
+                    window.decypharrUtils.createToast('Purge failed: ' + err.message, 'error');
+                } finally {
+                    window.decypharrUtils.setButtonLoading(providerPurgeBtn, false);
+                }
+            });
+        }
     }
 }
