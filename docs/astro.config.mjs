@@ -35,6 +35,7 @@ export default defineConfig({
 					label: 'Configuration',
 					items: [
 						{ label: 'Configuration Reference', link: '/guides/configuration' },
+						{ label: 'Managed-Only Mode', link: '/guides/managed-only' },
 					],
 				},
 				{
