@@ -19,10 +19,9 @@ func TestMain(m *testing.M) {
 }
 
 // checkMagnet is a helper function that verifies magnet properties
-func checkMagnet(t *testing.T, magnet *Magnet, expectedInfoHash, expectedName, expectedLink string, expectedTrackerCount int, shouldBeTorrent bool) {
-	t.Helper() // This marks the function as a test helper
+func checkMagnet(t *testing.T, magnet *Magnet, expectedInfoHash, expectedName, expectedLink string, expectedTrackerCount int) {
+	t.Helper()
 
-	// Verify basic properties
 	if magnet.Name != expectedName {
 		t.Errorf("Expected name '%s', got '%s'", expectedName, magnet.Name)
 	}
@@ -32,13 +31,9 @@ func checkMagnet(t *testing.T, magnet *Magnet, expectedInfoHash, expectedName, e
 	if magnet.Link != expectedLink {
 		t.Errorf("Expected Link '%s', got '%s'", expectedLink, magnet.Link)
 	}
-
-	// Verify the magnet link contains the essential info hash
 	if !strings.Contains(magnet.Link, "xt=urn:btih:"+expectedInfoHash) {
 		t.Error("Magnet link should contain info hash")
 	}
-
-	// Verify tracker count
 	trCount := strings.Count(magnet.Link, "tr=")
 	if trCount != expectedTrackerCount {
 		t.Errorf("Expected %d tracker URLs, got %d", expectedTrackerCount, trCount)
@@ -60,9 +55,8 @@ func testMagnetFromFile(t *testing.T, filePath string, rmTrackerUrls bool, expec
 		t.Fatalf("GetMagnetFromFile failed: %v", err)
 	}
 
-	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount, true)
+	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount)
 
-	// Log the result
 	if rmTrackerUrls {
 		t.Logf("Generated clean magnet link: %s", magnet.Link)
 	} else {
@@ -127,7 +121,7 @@ func TestGetMagnetFromUrl_MagnetLink_StripTrue(t *testing.T) {
 		t.Fatalf("GetMagnetFromUrl failed: %v", err)
 	}
 
-	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount, false)
+	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount)
 	t.Logf("Generated clean magnet link: %s", magnet.Link)
 }
 
@@ -148,7 +142,7 @@ func TestGetMagnetFromUrl_MagnetLink_StripFalse(t *testing.T) {
 		t.Fatalf("GetMagnetFromUrl failed: %v", err)
 	}
 
-	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount, false)
+	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount)
 	t.Logf("Generated magnet link with trackers: %s", magnet.Link)
 }
 
@@ -175,9 +169,8 @@ func testMagnetFromHttpTorrent(t *testing.T, torrentPath string, rmTrackerUrls b
 		t.Fatalf("GetMagnetFromUrl failed: %v", err)
 	}
 
-	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount, true)
+	checkMagnet(t, magnet, expectedInfoHash, expectedName, expectedLink, expectedTrackerCount)
 
-	// Log the result
 	if rmTrackerUrls {
 		t.Logf("Generated clean magnet link from HTTP torrent: %s", magnet.Link)
 	} else {

@@ -27,7 +27,6 @@ func newLRUCache(capacity int) *lruCache {
 	}
 }
 
-// Get retrieves an item from the cache
 func (c *lruCache) Get(key string) ([]byte, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -37,35 +36,29 @@ func (c *lruCache) Get(key string) ([]byte, bool) {
 		return nil, false
 	}
 
-	// Move to front (most recently used)
 	c.order.MoveToFront(elem)
 	return elem.Value.(*cacheItem).value, true
 }
 
-// Put adds an item to the cache
 func (c *lruCache) Put(key string, value []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// If key exists, update and move to front
 	if elem, ok := c.items[key]; ok {
 		c.order.MoveToFront(elem)
 		elem.Value.(*cacheItem).value = value
 		return
 	}
 
-	// Evict oldest if at capacity
 	for c.order.Len() >= c.capacity && c.order.Len() > 0 {
 		c.evictOldest()
 	}
 
-	// Add new item at front
 	item := &cacheItem{key: key, value: value}
 	elem := c.order.PushFront(item)
 	c.items[key] = elem
 }
 
-// Remove removes an item from the cache
 func (c *lruCache) Remove(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -76,7 +69,6 @@ func (c *lruCache) Remove(key string) {
 	}
 }
 
-// Clear removes all items from the cache
 func (c *lruCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -85,14 +77,12 @@ func (c *lruCache) Clear() {
 	c.order = list.New()
 }
 
-// Len returns the number of items in the cache
 func (c *lruCache) Len() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.order.Len()
 }
 
-// SetCapacity changes the cache capacity and evicts if necessary
 func (c *lruCache) SetCapacity(capacity int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -103,7 +93,6 @@ func (c *lruCache) SetCapacity(capacity int) {
 	}
 }
 
-// MemoryUsage returns approximate memory usage
 func (c *lruCache) MemoryUsage() int64 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -111,12 +100,12 @@ func (c *lruCache) MemoryUsage() int64 {
 	var total int64
 	for elem := c.order.Front(); elem != nil; elem = elem.Next() {
 		item := elem.Value.(*cacheItem)
-		total += int64(len(item.key)) + int64(len(item.value)) + 64 // overhead
+		total += int64(len(item.key)) + int64(len(item.value)) + 64
 	}
 	return total
 }
 
-// evictOldest removes the least recently used item (must hold write lock)
+// evictOldest must be called with the write lock held.
 func (c *lruCache) evictOldest() {
 	oldest := c.order.Back()
 	if oldest != nil {
@@ -126,7 +115,6 @@ func (c *lruCache) evictOldest() {
 	}
 }
 
-// Keys returns all cached keys (for debugging)
 func (c *lruCache) Keys() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
