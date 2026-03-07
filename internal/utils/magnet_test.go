@@ -11,6 +11,13 @@ import (
 	"github.com/sirrobot01/decypharr/internal/testutil"
 )
 
+func TestMain(m *testing.M) {
+	_, cleanup := testutil.SetupTestConfigDir()
+	code := m.Run()
+	cleanup()
+	os.Exit(code)
+}
+
 // checkMagnet is a helper function that verifies magnet properties
 func checkMagnet(t *testing.T, magnet *Magnet, expectedInfoHash, expectedName, expectedLink string, expectedTrackerCount int, shouldBeTorrent bool) {
 	t.Helper() // This marks the function as a test helper
