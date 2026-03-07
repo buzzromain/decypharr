@@ -219,7 +219,18 @@ func (q *Queue) ListFilter(category string, protocol config.Protocol, state stor
 			case "added_on":
 				return torrents[i].AddedOn.Before(torrents[j].AddedOn)
 			case "completed", "downloaded":
-				return torrents[i].CompletedAt.Before(*torrents[j].CompletedAt)
+				ti := torrents[i].CompletedAt
+				tj := torrents[j].CompletedAt
+				if ti == nil && tj == nil {
+					return false
+				}
+				if ti == nil {
+					return false
+				}
+				if tj == nil {
+					return true
+				}
+				return ti.Before(*tj)
 			case "progress":
 				return torrents[i].Progress < torrents[j].Progress
 			case "category":
