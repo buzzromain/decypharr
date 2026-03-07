@@ -85,7 +85,7 @@ func (s *SABnzbd) getCategories() []Category {
 
 	for i, a := range arrs {
 		if _, ok := added[a.Name]; ok {
-			continue // Skip if category already added
+			continue
 		}
 		categories = append(categories, Category{
 			Name:     a.Name,
@@ -95,6 +95,7 @@ func (s *SABnzbd) getCategories() []Category {
 			Dir:      filepath.Join(s.downloadFolder, a.Name),
 			Priority: PriorityNormal,
 		})
+		added[a.Name] = struct{}{}
 	}
 
 	// Add default categories if not already present
