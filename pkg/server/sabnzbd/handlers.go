@@ -281,12 +281,6 @@ func (s *SABnzbd) handleAddURL(w http.ResponseWriter, r *http.Request) {
 		_arr = arr.New(cat, "", "", false, false, nil, "", "")
 	}
 
-	if r.Method != http.MethodPost {
-		s.logger.Warn().Str("method", r.Method).Msg("Invalid method")
-		s.writeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	urls := r.URL.Query().Get("name")
 
 	cfg := config.Get()
