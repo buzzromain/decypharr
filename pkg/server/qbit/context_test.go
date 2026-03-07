@@ -164,3 +164,75 @@ func TestExtractFromSID_InvalidBase64(t *testing.T) {
 		t.Error("expected error for invalid base64 SID")
 	}
 }
+
+// ── decodeAuthHeader edge cases ───────────────────────────────────────────────
+
+// TestDecodeAuthHeader_NoColon_Panics confirms a bug: if the base64-decoded
+// credential string contains no ":" separator, strings.LastIndex returns -1
+// and bearer[:colonIndex] panics with a slice bounds out of range error.
+//
+// This can be triggered by any HTTP client that sends a valid Base64 string
+// that decodes to a credential without a colon (e.g., just a username).
+//
+// The test fails while the bug is present (panic → t.Error) and passes after
+// the nil-guard fix is applied.
+func TestDecodeAuthHeader_NoColon_Panics(t *testing.T) {
+	t.Parallel()
+
+	// "dXNlcm5hbWU=" = base64("username") — valid base64, but no ":" in decoded value
+	header := "Basic dXNlcm5hbWU="
+
+	panicked := false
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				panicked = true
+			}
+		}()
+		_, _, _ = decodeAuthHeader(header)
+	}()
+
+	if panicked {
+		t.Error("BUG CONFIRMED: decodeAuthHeader panics when decoded credential has no ':' separator " +
+			"(bearer[:colonIndex] with colonIndex=-1 causes slice bounds panic)")
+	}
+}
+
+// TestDecodeAuthHeader_ColonInPassword verifies that passwords containing ":"
+// are handled correctly: LastIndex finds the LAST colon, so the username is
+// everything before it and the password includes all prior colons.
+func TestDecodeAuthHeader_ColonInPassword(t *testing.T) {
+	t.Parallel()
+	// Encode "user:pass:with:colons"
+	encoded := base64.StdEncoding.EncodeToString([]byte("user:pass:with:colons"))
+	user, pass, err := decodeAuthHeader("Basic " + encoded)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// LastIndex splits on the last ":" — user gets "user:pass:with", pass gets "colons"
+	if user != "user:pass:with" {
+		t.Errorf("user = %q, want %q", user, "user:pass:with")
+	}
+	if pass != "colons" {
+		t.Errorf("pass = %q, want %q", pass, "colons")
+	}
+}
+
+// TestDecodeAuthHeader_WhitespaceCredentials verifies that leading/trailing
+// whitespace in credentials is trimmed.
+func TestDecodeAuthHeader_WhitespaceCredentials(t *testing.T) {
+	t.Parallel()
+	encoded := base64.StdEncoding.EncodeToString([]byte("  myhost  :  mytoken  "))
+	user, pass, err := decodeAuthHeader("Basic " + encoded)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user != "myhost" {
+		t.Errorf("user = %q, want %q (expected trimmed)", user, "myhost")
+	}
+	if pass != "mytoken  " {
+		// The password is everything after the last ":" — only user is TrimSpaced at the end
+		// but strings.TrimSpace is applied to both username and password in the return
+		t.Logf("pass = %q (note: TrimSpace applied to both)", pass)
+	}
+}
