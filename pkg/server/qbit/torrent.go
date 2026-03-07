@@ -82,6 +82,7 @@ func (q *QBit) GetTorrentProperties(t *storage.Entry) *TorrentProperties {
 }
 
 func (q *QBit) setTorrentTags(t *storage.Entry, tags []string) {
+	q.mu.Lock()
 	for _, tag := range tags {
 		if tag == "" {
 			continue
@@ -89,28 +90,33 @@ func (q *QBit) setTorrentTags(t *storage.Entry, tags []string) {
 		if !utils.Contains(t.Tags, tag) {
 			t.Tags = append(t.Tags, tag)
 		}
-		if !utils.Contains(q.Tags, tag) {
-			q.Tags = append(q.Tags, tag)
+		if !utils.Contains(q.tags, tag) {
+			q.tags = append(q.tags, tag)
 		}
 	}
+	q.mu.Unlock()
 	_ = q.manager.Queue().Update(t)
 }
 
 func (q *QBit) removeTorrentTags(t *storage.Entry, tags []string) bool {
 	newTorrentTags := utils.RemoveItem(t.Tags, tags...)
-	q.Tags = utils.RemoveItem(q.Tags, tags...)
+	q.mu.Lock()
+	q.tags = utils.RemoveItem(q.tags, tags...)
+	q.mu.Unlock()
 	t.Tags = newTorrentTags
 	_ = q.manager.Queue().Update(t)
 	return true
 }
 
 func (q *QBit) addTags(tags []string) bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
 	for _, tag := range tags {
 		if tag == "" {
 			continue
 		}
-		if !utils.Contains(q.Tags, tag) {
-			q.Tags = append(q.Tags, tag)
+		if !utils.Contains(q.tags, tag) {
+			q.tags = append(q.tags, tag)
 		}
 	}
 	return true
