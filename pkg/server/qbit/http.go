@@ -161,7 +161,9 @@ func (q *QBit) handleTorrentsAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("Ok."))
 }
 
 func (q *QBit) handleTorrentsDelete(w http.ResponseWriter, r *http.Request) {
