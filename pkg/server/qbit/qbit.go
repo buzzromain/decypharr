@@ -1,6 +1,8 @@
 package qbit
 
 import (
+	"sync"
+
 	"github.com/rs/zerolog"
 	"github.com/sirrobot01/decypharr/internal/config"
 	"github.com/sirrobot01/decypharr/internal/logger"
@@ -12,7 +14,8 @@ type QBit struct {
 	categories              []string
 	alwaysRemoveTrackerURLS bool
 	logger                  zerolog.Logger
-	Tags                    []string
+	mu                      sync.Mutex
+	tags                    []string
 	manager                 *manager.Manager
 }
 

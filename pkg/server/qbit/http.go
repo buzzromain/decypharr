@@ -351,7 +351,11 @@ func (q *QBit) handleRemoveTorrentTags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (q *QBit) handleGetTags(w http.ResponseWriter, r *http.Request) {
-	utils.JSONResponse(w, q.Tags, http.StatusOK)
+	q.mu.Lock()
+	tags := make([]string, len(q.tags))
+	copy(tags, q.tags)
+	q.mu.Unlock()
+	utils.JSONResponse(w, tags, http.StatusOK)
 }
 
 func (q *QBit) handleCreateTags(w http.ResponseWriter, r *http.Request) {
