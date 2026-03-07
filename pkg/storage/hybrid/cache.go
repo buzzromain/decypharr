@@ -29,19 +29,16 @@ func newLRUCache(capacity int) *lruCache {
 
 // Get retrieves an item from the cache
 func (c *lruCache) Get(key string) ([]byte, bool) {
-	c.mu.RLock()
-	elem, ok := c.items[key]
-	c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
+	elem, ok := c.items[key]
 	if !ok {
 		return nil, false
 	}
 
 	// Move to front (most recently used)
-	c.mu.Lock()
 	c.order.MoveToFront(elem)
-	c.mu.Unlock()
-
 	return elem.Value.(*cacheItem).value, true
 }
 
