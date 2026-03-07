@@ -283,12 +283,14 @@ func (q *QBit) handleSetCategory(w http.ResponseWriter, r *http.Request) {
 	hashes := getHashes(ctx)
 	var filterFunc func(t *storage.Entry) bool
 
-	hashSet := make(map[string]bool)
 	if len(hashes) > 0 {
+		hashSet := make(map[string]bool, len(hashes))
 		for _, h := range hashes {
 			hashSet[h] = true
 		}
-
+		filterFunc = func(t *storage.Entry) bool {
+			return hashSet[t.InfoHash]
+		}
 	}
 
 	updateFunc := func(t *storage.Entry) bool {
