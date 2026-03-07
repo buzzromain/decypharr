@@ -57,6 +57,9 @@ func decodeAuthHeader(header string) (string, string, error) {
 	bearer := string(bytes)
 
 	colonIndex := strings.LastIndex(bearer, ":")
+	if colonIndex == -1 {
+		return "", "", fmt.Errorf("invalid credentials: no colon separator")
+	}
 	username := bearer[:colonIndex]
 	password := bearer[colonIndex+1:]
 
