@@ -205,7 +205,7 @@ func nzbTestBuildSimpleNZB(filename, messageID string, nbytes int) []byte {
 
 // newNZBIntegrationManager creates a Manager with usenet configured to use
 // the given test NNTP server. The config is set up in a temp directory.
-func newNZBIntegrationManager(t *testing.T, nntpHost string, nntpPort int) *Manager {
+func newNZBIntegrationManager(t *testing.T, nntpHost string, nntpPort int) (*Manager, func() error) {
 	t.Helper()
 
 	base := t.TempDir()
@@ -236,8 +236,18 @@ func newNZBIntegrationManager(t *testing.T, nntpHost string, nntpPort int) *Mana
 	}
 
 	mgr := New()
-	t.Cleanup(func() { _ = mgr.Stop() })
-	return mgr
+	var stopOnce sync.Once
+	var stopErr error
+	stopMgr := func() {
+		stopOnce.Do(func() {
+			stopErr = mgr.Stop()
+		})
+	}
+	t.Cleanup(stopMgr)
+	return mgr, func() error {
+		stopMgr()
+		return stopErr
+	}
 }
 
 // ── NZB Pipeline Integration Tests ──────────────────────────────────────────
@@ -258,11 +268,12 @@ func TestNZBPipeline_ProcessNewNZB(t *testing.T) {
 	})
 	host, port := srv.hostPort()
 
-	mgr := newNZBIntegrationManager(t, host, port)
+	mgr, stopMgr := newNZBIntegrationManager(t, host, port)
 
 	if mgr.usenet == nil {
 		t.Fatal("usenet client was not initialized — config likely wrong")
 	}
+	_ = stopMgr
 
 	nzbContent := nzbTestBuildSimpleNZB("movie.mkv", "seg-integ@test", len(segmentPayload))
 	_arr := arr.New("radarr", "", "", false, false, false, nil, "", "")
@@ -387,7 +398,7 @@ func TestNZBPipeline_Cancellation(t *testing.T) {
 	srv.articles[nntp.FormatMessageID("seg-block@test")] = origBody
 	srv.mu.Unlock()
 
-	mgr := newNZBIntegrationManager(t, host, port)
+	mgr, stopMgr := newNZBIntegrationManager(t, host, port)
 	if mgr.usenet == nil {
 		t.Fatal("usenet client was not initialized")
 	}
@@ -414,7 +425,7 @@ func TestNZBPipeline_Cancellation(t *testing.T) {
 	_ = blockCh // unused — kept for clarity
 
 	// Stop the manager, cancelling lifecycle context.
-	if err := mgr.Stop(); err != nil {
+	if err := stopMgr(); err != nil {
 		t.Fatalf("Stop() returned error: %v", err)
 	}
 

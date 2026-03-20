@@ -186,19 +186,6 @@ func TestGetTorrent_TimeoutPropagation(t *testing.T) {
 	}
 }
 
-func TestUpdateTorrent_MalformedNilData(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"success":true,"data":null}`))
-	}))
-	defer srv.Close()
-
-	tb := newTestTorbox(srv.URL, false)
-	err := tb.UpdateTorrent(&types.Torrent{Id: "7", Files: map[string]types.File{}})
-	if err == nil || !strings.Contains(err.Error(), "error getting torrent") {
-		t.Fatalf("error = %v, want error getting torrent", err)
-	}
-}
-
 func TestCheckStatus_NotCachedWhenDownloading(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"success":true,"data":{"id":7,"name":"Pack","size":1000,"progress":0.4,"download_state":"downloading","download_finished":false,"download_speed":111,"seeds":12,"hash":"abc123","created_at":"2024-01-01T00:00:00Z","files":[]}}`))

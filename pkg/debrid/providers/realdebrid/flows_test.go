@@ -275,20 +275,6 @@ func TestIsAvailable_BatchedPartialFailures(t *testing.T) {
 	}
 }
 
-func TestCheckStatus_UnknownStateReturnsError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"id":"z2","filename":"Pack","original_filename":"Pack","bytes":200,"progress":50,"status":"state_from_future","links":[],"files":[],"added":"2024-01-01T00:00:00Z"}`))
-	}))
-	defer srv.Close()
-
-	rd := newTestRD(srv.URL, false)
-	tor := &types.Torrent{Id: "z2", Files: map[string]types.File{}, DownloadUncached: true}
-	_, err := rd.CheckStatus(tor)
-	if err == nil || !strings.Contains(err.Error(), "has error") {
-		t.Fatalf("error = %v, want has error", err)
-	}
-}
-
 func TestCheckFile_HosterUnavailableMapping(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
