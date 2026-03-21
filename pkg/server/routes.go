@@ -3,6 +3,7 @@ package server
 import (
 	"io/fs"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -10,8 +11,27 @@ import (
 func (s *Server) WebRoutes() http.Handler {
 	r := chi.NewRouter()
 
+	// Allow CORS for local dev (e.g. Vite on a different port)
+	if devOrigin := os.Getenv("DECYPHARR_DEV_ORIGIN"); devOrigin != "" {
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Access-Control-Allow-Origin", devOrigin)
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				if r.Method == http.MethodOptions {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
+
 	// Apply setup redirect middleware globally
 	r.Use(s.setupRedirectMiddleware)
+
+	useV2 := os.Getenv("DECYPHARR_UI_V2") == "true"
 
 	// Static assets - always public
 	staticFS, _ := fs.Sub(assetsEmbed, "assets/build")
@@ -19,28 +39,51 @@ func (s *Server) WebRoutes() http.Handler {
 	r.Handle("/assets/*", http.StripPrefix(s.urlBase+"assets/", http.FileServer(http.FS(staticFS))))
 	r.Handle("/images/*", http.StripPrefix(s.urlBase+"images/", http.FileServer(http.FS(imagesFS))))
 
-	// Public routes - no auth needed
+	// Version endpoint - always available regardless of UI mode
 	r.Get("/version", s.handleGetVersion)
-	r.Get("/login", s.LoginHandler)
+
+	if useV2 {
+		// React SPA: serve index.html for all page routes
+		spaHandler := func(w http.ResponseWriter, r *http.Request) {
+			data, err := assetsEmbed.ReadFile("assets/build/index.html")
+			if err != nil {
+				http.Error(w, "React build not found", http.StatusNotFound)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Write(data)
+		}
+		for _, route := range []string{"/", "/download", "/repair", "/stats", "/settings", "/browse", "/login", "/register", "/setup"} {
+			r.Get(route, spaHandler)
+		}
+	} else {
+		// Public routes - no auth needed (template-based GET pages)
+		r.Get("/login", s.LoginHandler)
+		r.Get("/register", s.RegisterHandler)
+
+		// Setup wizard - public, no auth required
+		r.Get("/setup", s.SetupHandler)
+	}
+
+	// Auth POST endpoints - available in both UI modes
 	r.Post("/login", s.LoginHandler)
-	r.Get("/register", s.RegisterHandler)
 	r.Post("/register", s.RegisterHandler)
 	r.Post("/skip-auth", s.skipAuthHandler)
 
-	// Setup wizard - public, no auth required
-	r.Get("/setup", s.SetupHandler)
 	r.Post("/api/setup/complete", s.setupCompleteHandler)
 
 	// Protected routes - require auth
 	r.Group(func(r chi.Router) {
 		r.Use(s.authMiddleware)
-		// Web pages
-		r.Get("/", s.IndexHandler)
-		r.Get("/browse", s.BrowseHandler)
-		r.Get("/download", s.DownloadHandler)
-		r.Get("/repair", s.RepairHandler)
-		r.Get("/stats", s.StatsHandler)
-		r.Get("/settings", s.ConfigHandler)
+		if !useV2 {
+			// Web pages (template-based)
+			r.Get("/", s.IndexHandler)
+			r.Get("/browse", s.BrowseHandler)
+			r.Get("/download", s.DownloadHandler)
+			r.Get("/repair", s.RepairHandler)
+			r.Get("/stats", s.StatsHandler)
+			r.Get("/settings", s.ConfigHandler)
+		}
 
 		// API routes
 		r.Route("/api", func(r chi.Router) {
