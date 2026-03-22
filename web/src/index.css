@@ -27,25 +27,43 @@
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Elevation: background (darkest) → card → popover (lightest overlay) */
+    --background: 220 22% 6%;
+    --foreground: 210 25% 94%;
+
+    --card: 220 20% 9.5%;
+    --card-foreground: 210 25% 94%;
+
+    --popover: 220 18% 11%;
+    --popover-foreground: 210 25% 94%;
+
+    /* Primary: cyan-blue — the interactive accent */
+    --primary: 196 80% 52%;
+    --primary-foreground: 220 40% 6%;
+
+    /* Secondary: elevated interactive surface */
+    --secondary: 220 16% 16%;
+    --secondary-foreground: 210 20% 88%;
+
+    /* Muted: suppressed backgrounds and text */
+    --muted: 220 18% 13%;
+    --muted-foreground: 215 15% 57%;
+
+    /* Accent: hover/selection state — distinctly lighter than muted */
+    --accent: 220 20% 19%;
+    --accent-foreground: 210 25% 94%;
+
+    /* Destructive: readable in dark mode */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders: visible but not harsh */
+    --border: 220 14% 18%;
+    --input: 220 16% 22%;
+
+    /* Ring: matches primary for visible focus */
+    --ring: 196 80% 52%;
+
     --radius: 0.5rem;
   }
 

@@ -18,10 +18,10 @@ export function MiniStat({ label, value, sub, percent }: MiniStatProps) {
       </div>
       <Progress.Root
         value={percent ?? 0}
-        className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+        className="h-1 w-full overflow-hidden rounded-full bg-muted/60"
       >
         <Progress.Indicator
-          className="h-full bg-primary transition-all"
+          className="h-full bg-primary/70 transition-all"
           style={{ transform: `translateX(-${100 - (percent ?? 0)}%)` }}
         />
       </Progress.Root>

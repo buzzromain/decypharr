@@ -17,8 +17,8 @@ export function NavLink({ to, icon: Icon, label, badge }: NavLinkProps) {
       className={cn(
         'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
         match
-          ? 'bg-accent text-accent-foreground font-medium'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+          ? 'bg-primary/10 text-primary font-medium'
+          : 'text-muted-foreground hover:text-foreground hover:bg-accent/60'
       )}
     >
       <Icon size={16} />

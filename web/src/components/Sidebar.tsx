@@ -37,7 +37,7 @@ export function Sidebar() {
     <aside className="w-[260px] h-screen flex flex-col border-r border-border bg-card p-4 gap-4 overflow-y-auto shrink-0">
       {/* Logo */}
       <div className="flex items-center justify-between">
-        <span className="font-bold text-lg">◈ Decypharr</span>
+        <span className="font-bold text-lg"><span className="text-primary">◈</span> Decypharr</span>
         {version?.version && (
           <span className="text-xs text-muted-foreground">{version.version}</span>
         )}
