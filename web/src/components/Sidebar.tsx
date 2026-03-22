@@ -30,20 +30,19 @@ export function Sidebar() {
     refetchInterval: 30_000,
   })
 
-  const debrids: { name: string }[] = config?.debrids ?? []
+  const debrids: { provider: string; name: string }[] = config?.debrids ?? []
   const arrs: { name: string }[] = config?.arrs ?? []
 
   return (
     <aside className="w-[260px] h-screen flex flex-col border-r border-border bg-card p-4 gap-4 overflow-y-auto shrink-0">
       {/* Logo */}
-      <div className="flex items-center justify-between">
-        <span className="font-bold text-lg"><span className="text-primary">◈</span> Decypharr</span>
-        {version?.version && (
-          <span className="text-xs text-muted-foreground">{version.version}</span>
-        )}
+      <div className="flex items-center gap-2">
+        <img src="/logo.png" alt="Decypharr" className="w-7 h-7 object-contain" />
+        <span className="font-bold text-lg">Decypharr</span>
+        <span className="text-xs text-muted-foreground ml-auto">{version?.version ?? ''}</span>
       </div>
 
-      <hr className="border-border" />
+      <hr className="border-border/50" />
 
       {/* Navigation */}
       <nav className="flex flex-col gap-1">
@@ -55,7 +54,7 @@ export function Sidebar() {
       {/* Spacer : pousse les stats vers le bas */}
       <div className="flex-1" />
 
-      <hr className="border-border" />
+      <hr className="border-border/50" />
 
       {/* Mini-stats */}
       <div className="space-y-3">
@@ -66,13 +65,18 @@ export function Sidebar() {
       {/* Service indicators */}
       {(debrids.length > 0 || arrs.length > 0) && (
         <>
-          <hr className="border-border" />
+          <hr className="border-border/50" />
           <div className="space-y-1">
             {debrids.map(d => (
-              <ServiceIndicator key={d.name} name={d.name} connected={true} />
+              <ServiceIndicator
+                key={d.name}
+                connected={true}
+                serviceName={d.provider.charAt(0).toUpperCase() + d.provider.slice(1)}
+                instanceName={d.name}
+              />
             ))}
             {arrs.map(a => (
-              <ServiceIndicator key={a.name} name={a.name} connected={true} />
+              <ServiceIndicator key={a.name} connected={true} serviceName={a.name} />
             ))}
           </div>
         </>

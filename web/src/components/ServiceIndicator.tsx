@@ -2,22 +2,31 @@ import { Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ServiceIndicatorProps {
-  name: string
   connected: boolean
+  serviceName: string
+  instanceName?: string
 }
 
-export function ServiceIndicator({ name, connected }: ServiceIndicatorProps) {
+export function ServiceIndicator({ connected, serviceName, instanceName }: ServiceIndicatorProps) {
   return (
     <div className="flex items-center gap-2 px-1 py-0.5">
       <Circle
-        size={8}
+        size={7}
         className={cn(
           'shrink-0',
-          connected ? 'fill-green-400 text-green-400' : 'fill-muted text-muted'
+          connected ? 'fill-green-400 text-green-400' : 'fill-muted-foreground/40 text-muted-foreground/40'
         )}
       />
-      <span className="text-sm text-muted-foreground flex-1 truncate">{name}</span>
-      <span className={cn('text-xs', connected ? 'text-green-400' : 'text-muted-foreground')}>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-medium leading-tight truncate">{serviceName}</div>
+        {instanceName && instanceName.toLowerCase() !== serviceName.toLowerCase() && (
+          <div className="text-[10px] text-muted-foreground leading-tight truncate">{instanceName}</div>
+        )}
+      </div>
+      <span className={cn(
+        'text-xs px-1.5 py-0.5 rounded-full shrink-0',
+        connected ? 'text-green-400 bg-green-500/10' : 'text-muted-foreground bg-muted/40'
+      )}>
         {connected ? 'connected' : 'offline'}
       </span>
     </div>

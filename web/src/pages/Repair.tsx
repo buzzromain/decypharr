@@ -16,6 +16,8 @@ import {
   ListTodo,
   Wrench,
   Search,
+  Library,
+  Database,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -50,8 +52,10 @@ import {
 import { getArrs } from '@/api/arrs'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export default function RepairPage() {
+  usePageTitle('Repair')
   const [formOpen, setFormOpen] = useState(true)
   const [selectedJob, setSelectedJob] = useState<RepairJob | null>(null)
   const queryClient = useQueryClient()
@@ -106,9 +110,9 @@ export default function RepairPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pb-2 border-b border-border/50">
         <Wrench size={20} />
-        <h1 className="text-2xl font-bold">Repair</h1>
+        <h1 className="text-xl font-semibold">Repair</h1>
       </div>
 
       {/* Form section (collapsible) */}
@@ -201,23 +205,26 @@ function RepairForm({ arrs, onSubmit, loading }: RepairFormProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {(
             [
-              { value: 'arr', label: 'Arr Media Library', desc: 'Scan files managed by Sonarr/Radarr' },
-              { value: 'managed_entries', label: 'Managed Entries', desc: 'Scan internal database entries' },
-            ] as const
+              { value: 'arr' as const, label: 'Arr Media Library', desc: 'Scan files managed by Sonarr/Radarr', icon: Library, iconClass: 'text-primary' },
+              { value: 'managed_entries' as const, label: 'Managed Entries', desc: 'Scan internal database entries', icon: Database, iconClass: 'text-secondary' },
+            ]
           ).map(opt => (
             <button
               key={opt.value}
               type="button"
               onClick={() => setScope(opt.value)}
               className={cn(
-                'text-left rounded-lg border p-3 transition-colors',
+                'text-left rounded-lg border p-3 flex items-center gap-3 transition-colors',
                 scope === opt.value
                   ? 'border-primary bg-primary/10'
                   : 'border-border hover:bg-muted/50',
               )}
             >
-              <p className="text-sm font-medium">{opt.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+              <opt.icon size={20} className={opt.iconClass} />
+              <div className="flex-1">
+                <p className="font-bold text-sm">{opt.label}</p>
+                <p className="text-xs opacity-70 mt-0.5">{opt.desc}</p>
+              </div>
             </button>
           ))}
         </div>
@@ -435,7 +442,7 @@ function RepairJobsTable({
               <TableRow>
                 <TableCell colSpan={8} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <ClipboardCheck size={40} strokeWidth={1.5} />
+                    <ClipboardCheck size={40} strokeWidth={1.5} className="opacity-30" />
                     <p className="text-sm">No repair jobs yet</p>
                   </div>
                 </TableCell>
