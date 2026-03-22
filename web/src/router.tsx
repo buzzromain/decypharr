@@ -6,6 +6,7 @@ import BrowsePage from './pages/Browse'
 import RepairPage from './pages/Repair'
 import SettingsPage from './pages/Settings'
 import StatsPage from './pages/Stats'
+import LogsPage from './pages/Logs'
 import LoginPage from './pages/Login'
 import RegisterPage from './pages/Register'
 import SetupPage from './pages/Setup'
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: '/stats',    element: <StatsPage /> },
       { path: '/settings', element: <SettingsPage /> },
       { path: '/browse',   element: <BrowsePage /> },
+      { path: '/logs',     element: <LogsPage /> },
     ],
   },
   {

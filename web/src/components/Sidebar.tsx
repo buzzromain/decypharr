@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
-import { Zap, Library, Folder, Wrench, BarChart2, Settings } from 'lucide-react'
+import { Zap, Library, Folder, Wrench, BarChart2, Settings, ScrollText } from 'lucide-react'
 import { NavLink } from './NavLink'
 import { MiniStat } from './MiniStat'
 import { ServiceIndicator } from './ServiceIndicator'
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { path: '/browse',   icon: Folder,   label: 'Browse' },
   { path: '/repair',   icon: Wrench,   label: 'Repair' },
   { path: '/stats',    icon: BarChart2, label: 'Stats' },
+  { path: '/logs',     icon: ScrollText, label: 'Logs' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ]
 
