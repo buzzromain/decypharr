@@ -4,9 +4,20 @@ export interface Debrid {
   provider: string
   name: string
   api_key: string
-  download_uncached?: boolean
-  rate_limit?: string
   download_api_keys?: string[]
+  rate_limit?: string
+  repair_rate_limit?: string
+  download_rate_limit?: string
+  proxy?: string
+  user_agent?: string
+  minimum_free_slot?: number
+  slot_strategy?: string
+  torrents_refresh_interval?: string
+  download_links_refresh_interval?: string
+  auto_expire_links_after?: string
+  unpack_rar?: boolean
+  use_torrent_file?: boolean
+  download_uncached?: boolean
 }
 
 export interface Arr {
@@ -46,12 +57,58 @@ export interface DFS {
   cache_dir?: string
   chunk_size?: string
   read_ahead_size?: string
+  disk_cache_size?: string
+  cache_expiry?: string
+  cache_cleanup_interval?: string
+  daemon_timeout?: string
+  uid?: number
+  gid?: number
+  umask?: string
+  allow_other?: boolean
+  default_permissions?: boolean
+}
+
+export interface RcloneMount {
+  port?: string
+  cache_dir?: string
+  vfs_cache_mode?: string
+  vfs_cache_max_age?: string
+  vfs_disk_space_total?: string
+  vfs_cache_max_size?: string
+  vfs_cache_poll_interval?: string
+  vfs_read_chunk_size?: string
+  vfs_read_chunk_size_limit?: string
+  vfs_read_ahead?: string
+  buffer_size?: string
+  bw_limit?: string
+  vfs_cache_min_free_space?: string
+  vfs_fast_fingerprint?: boolean
+  vfs_read_chunk_streams?: number
+  async_read?: boolean
+  transfers?: number
+  use_mmap?: boolean
+  uid?: number
+  gid?: number
+  umask?: string
+  attr_timeout?: string
+  dir_cache_time?: string
+  no_modtime?: boolean
+  no_checksum?: boolean
+  log_level?: string
+}
+
+export interface ExternalRclone {
+  rc_url?: string
+  rc_username?: string
+  rc_password?: string
 }
 
 export interface Mount {
   type?: string
   mount_path?: string
   dfs?: DFS
+  rclone?: RcloneMount
+  external_rclone?: ExternalRclone
 }
 
 export interface Notifications {
@@ -93,6 +150,8 @@ export interface AppConfig {
   use_auth?: boolean
   api_token?: string
   auth_username?: string
+
+  custom_folders?: Record<string, { filters?: Record<string, string> }>
 
   notifications?: Notifications
 }

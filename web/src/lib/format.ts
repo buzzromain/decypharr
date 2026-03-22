@@ -10,3 +10,11 @@ export function formatDate(iso: string): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleString()
 }
+
+export function formatSpeed(bytesPerSec: number): string {
+  if (!bytesPerSec || bytesPerSec === 0) return '0 B/s'
+  const k = 1024
+  const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s']
+  const i = Math.floor(Math.log(bytesPerSec) / Math.log(k))
+  return `${parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+}

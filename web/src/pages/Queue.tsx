@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, RefreshCw, Trash2, CloudOff, Inbox, AlertTriangle } from 'lucide-react'
+import {
+  Plus, RefreshCw, Trash2, CloudOff, Inbox, AlertTriangle,
+  FileText, HardDrive, Gauge, Download, Tag, Network, Cloud, Users, Activity, Zap,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
@@ -10,9 +13,11 @@ import { Progress } from '@/components/ui/progress'
 import { StatusBadge } from '@/components/StatusBadge'
 import { QueueItemDrawer } from '@/components/QueueItemDrawer'
 import { AddModal } from '@/components/AddModal'
+import { ColumnToggle } from '@/components/ColumnToggle'
+import { useColumnVisibility, type ColumnId } from '@/hooks/useColumnVisibility'
 import { getQueueItems, deleteItem, deleteItems, type QueueItem } from '@/api/torrents'
 import { toast } from '@/hooks/use-toast'
-import { formatSize } from '@/lib/format'
+import { formatSize, formatSpeed } from '@/lib/format'
 
 const SORT_OPTIONS = [
   { value: 'added_on|desc', label: 'Date Added (Newest)' },
@@ -23,6 +28,18 @@ const SORT_OPTIONS = [
   { value: 'size|asc',      label: 'Size (Smallest)' },
   { value: 'progress|desc', label: 'Progress (Most)' },
   { value: 'progress|asc',  label: 'Progress (Least)' },
+]
+
+const COLUMN_DEFS: { id: ColumnId; label: string }[] = [
+  { id: 'name',     label: 'Name'     },
+  { id: 'size',     label: 'Size'     },
+  { id: 'progress', label: 'Progress' },
+  { id: 'speed',    label: 'Speed'    },
+  { id: 'category', label: 'Category' },
+  { id: 'protocol', label: 'Type'     },
+  { id: 'debrid',   label: 'Provider' },
+  { id: 'seeders',  label: 'Seeders'  },
+  { id: 'status',   label: 'Status'   },
 ]
 
 const LIMIT = 20
@@ -40,6 +57,8 @@ export default function QueuePage() {
   const [selected, setSelected]       = useState<Set<string>>(new Set())
   const [drawerItem, setDrawerItem]   = useState<QueueItem | null>(null)
   const [addModalOpen, setAddModalOpen] = useState(false)
+
+  const { visibility, toggle } = useColumnVisibility()
 
   const resetPage = useCallback(() => setPage(1), [])
 
@@ -97,7 +116,9 @@ export default function QueuePage() {
   const paginationStart = (page - 1) * LIMIT + 1
   const paginationEnd   = Math.min(page * LIMIT, total)
 
-  // Backend unreachable or setup/auth issue
+  // Count visible configurable columns + 2 fixed (checkbox + actions)
+  const visibleColCount = COLUMN_DEFS.filter(c => visibility[c.id]).length + 2
+
   if (isError) {
     const status = (error as { response?: { status: number } })?.response?.status
     const msg =
@@ -117,6 +138,11 @@ export default function QueuePage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Zap size={20} />
+        <h1 className="text-2xl font-bold">Queue</h1>
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -185,6 +211,8 @@ export default function QueuePage() {
             </SelectContent>
           </Select>
 
+          <ColumnToggle columns={COLUMN_DEFS} visibility={visibility} onToggle={toggle} />
+
           <Button
             size="icon"
             variant="ghost"
@@ -205,25 +233,29 @@ export default function QueuePage() {
               <TableHead className="w-10">
                 <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
               </TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead className="w-16">Type</TableHead>
-              <TableHead className="w-24">Size</TableHead>
-              <TableHead className="w-36">Progress</TableHead>
-              <TableHead className="w-28">Status</TableHead>
+              {visibility.name     && <TableHead><span className="flex items-center gap-1.5"><FileText size={13} className="text-muted-foreground" />Name</span></TableHead>}
+              {visibility.size     && <TableHead className="w-24"><span className="flex items-center gap-1.5"><HardDrive size={13} className="text-muted-foreground" />Size</span></TableHead>}
+              {visibility.progress && <TableHead className="w-36"><span className="flex items-center gap-1.5"><Gauge size={13} className="text-muted-foreground" />Progress</span></TableHead>}
+              {visibility.speed    && <TableHead className="w-24"><span className="flex items-center gap-1.5"><Download size={13} className="text-muted-foreground" />Speed</span></TableHead>}
+              {visibility.category && <TableHead className="w-28"><span className="flex items-center gap-1.5"><Tag size={13} className="text-muted-foreground" />Category</span></TableHead>}
+              {visibility.protocol && <TableHead className="w-16"><span className="flex items-center gap-1.5"><Network size={13} className="text-muted-foreground" />Type</span></TableHead>}
+              {visibility.debrid   && <TableHead className="w-28"><span className="flex items-center gap-1.5"><Cloud size={13} className="text-muted-foreground" />Provider</span></TableHead>}
+              {visibility.seeders  && <TableHead className="w-20"><span className="flex items-center gap-1.5"><Users size={13} className="text-muted-foreground" />Seeders</span></TableHead>}
+              {visibility.status   && <TableHead className="w-28"><span className="flex items-center gap-1.5"><Activity size={13} className="text-muted-foreground" />Status</span></TableHead>}
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
+                <TableCell colSpan={visibleColCount} className="text-center py-10 text-muted-foreground text-sm">
                   Loading...
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-16">
+                <TableCell colSpan={visibleColCount} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Inbox size={40} className="opacity-25" />
                     <p className="text-sm">No items in queue</p>
@@ -242,6 +274,7 @@ export default function QueuePage() {
                 selected={selected.has(item.info_hash)}
                 onSelect={checked => toggleSelect(item.info_hash, checked)}
                 onClick={() => setDrawerItem(item)}
+                visibility={visibility}
               />
             ))}
           </TableBody>
@@ -279,9 +312,10 @@ interface QueueRowProps {
   selected: boolean
   onSelect: (checked: boolean) => void
   onClick: () => void
+  visibility: Record<ColumnId, boolean>
 }
 
-function QueueRow({ item, selected, onSelect, onClick }: QueueRowProps) {
+function QueueRow({ item, selected, onSelect, onClick, visibility }: QueueRowProps) {
   const [confirming, setConfirming] = useState(false)
   const queryClient = useQueryClient()
 
@@ -306,33 +340,64 @@ function QueueRow({ item, selected, onSelect, onClick }: QueueRowProps) {
         <Checkbox checked={selected} onCheckedChange={onSelect} />
       </TableCell>
 
-      <TableCell className="cursor-pointer max-w-xs" onClick={onClick}>
-        <div className="flex flex-col gap-0.5">
-          <span className="font-medium text-sm truncate leading-tight" title={item.name}>
+      {visibility.name && (
+        <TableCell className="cursor-pointer max-w-xs" onClick={onClick}>
+          <span className="font-medium text-sm truncate leading-tight block" title={item.name}>
             {item.name}
           </span>
+        </TableCell>
+      )}
+
+      {visibility.size && (
+        <TableCell className="cursor-pointer text-xs text-muted-foreground" onClick={onClick}>
+          {formatSize(item.size)}
+        </TableCell>
+      )}
+
+      {visibility.progress && (
+        <TableCell className="cursor-pointer" onClick={onClick}>
+          <div className="flex items-center gap-2">
+            <Progress value={progress} className="w-20" />
+            <span className="text-xs text-muted-foreground tabular-nums">{progress}%</span>
+          </div>
+        </TableCell>
+      )}
+
+      {visibility.speed && (
+        <TableCell className="cursor-pointer text-xs text-muted-foreground tabular-nums" onClick={onClick}>
+          {item.dlspeed > 0 ? formatSpeed(item.dlspeed) : '—'}
+        </TableCell>
+      )}
+
+      {visibility.category && (
+        <TableCell className="cursor-pointer text-xs text-muted-foreground" onClick={onClick}>
+          {item.category || '—'}
+        </TableCell>
+      )}
+
+      {visibility.protocol && (
+        <TableCell className="cursor-pointer" onClick={onClick}>
+          <ProtocolBadge protocol={item.protocol} />
+        </TableCell>
+      )}
+
+      {visibility.debrid && (
+        <TableCell className="cursor-pointer text-xs text-muted-foreground" onClick={onClick}>
+          {item.debrid || '—'}
+        </TableCell>
+      )}
+
+      {visibility.seeders && (
+        <TableCell className="cursor-pointer text-xs text-muted-foreground tabular-nums" onClick={onClick}>
+          {item.num_seeds ?? '—'}
+        </TableCell>
+      )}
+
+      {visibility.status && (
+        <TableCell className="cursor-pointer" onClick={onClick}>
           <StatusBadge state={item.state} />
-        </div>
-      </TableCell>
-
-      <TableCell className="cursor-pointer" onClick={onClick}>
-        <ProtocolBadge protocol={item.protocol} />
-      </TableCell>
-
-      <TableCell className="cursor-pointer text-xs text-muted-foreground" onClick={onClick}>
-        {formatSize(item.size)}
-      </TableCell>
-
-      <TableCell className="cursor-pointer" onClick={onClick}>
-        <div className="flex items-center gap-2">
-          <Progress value={progress} className="w-20" />
-          <span className="text-xs text-muted-foreground tabular-nums">{progress}%</span>
-        </div>
-      </TableCell>
-
-      <TableCell className="cursor-pointer" onClick={onClick}>
-        <StatusBadge state={item.state} />
-      </TableCell>
+        </TableCell>
+      )}
 
       <TableCell onClick={e => e.stopPropagation()}>
         {confirming ? (

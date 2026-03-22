@@ -37,6 +37,13 @@ export interface RepairAction {
   completed_at?: string
 }
 
+export interface RepairBrokenEntry {
+  path?: string
+  file_path?: string
+  targetPath?: string
+  size?: number
+}
+
 export interface RepairJob {
   id: string
   arrs: string[]
@@ -56,6 +63,7 @@ export interface RepairJob {
   stage?: JobStage
   stats: RepairStats
   actions?: RepairAction[]
+  broken_items?: Record<string, RepairBrokenEntry[]>
 }
 
 export interface RepairRequest {

@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Cog } from 'lucide-react'
 
 interface SetupData {
   auth: { username: string; password: string; skip_auth: boolean }
@@ -332,7 +332,10 @@ export default function SetupPage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-xl rounded-xl border bg-card shadow-lg overflow-hidden">
         <div className="p-6 border-b">
-          <h1 className="text-xl font-bold">Setup Wizard</h1>
+          <div className="flex items-center gap-2">
+            <Cog size={18} />
+            <h1 className="text-xl font-bold">Setup Wizard</h1>
+          </div>
           <div className="flex items-center gap-1 mt-4">
             {STEPS.map((_label, i) => {
               const n = i + 1

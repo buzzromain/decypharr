@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Server, Database, Activity } from 'lucide-react'
+import { Server, Database, Activity, BarChart2 } from 'lucide-react'
 import { getConfig } from '@/api/config'
 
 export default function StatsPage() {
@@ -14,7 +14,10 @@ export default function StatsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">System Statistics</h1>
+      <div className="flex items-center gap-2">
+        <BarChart2 size={20} />
+        <h1 className="text-2xl font-bold">Stats</h1>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-lg border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold">

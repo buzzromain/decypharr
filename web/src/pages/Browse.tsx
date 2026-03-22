@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Home,
+  Folder,
   FolderOpen,
   FileText,
   RefreshCw,
@@ -12,7 +13,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Inbox,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -149,6 +149,11 @@ export default function BrowsePage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Folder size={20} />
+        <h1 className="text-2xl font-bold">Browse</h1>
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BrowseBreadcrumb path={path} onNavigate={navigateTo} />
@@ -214,7 +219,7 @@ export default function BrowsePage() {
                 onSort={handleSort}
                 className="w-32"
               />
-              <TableHead className="w-20">Actions</TableHead>
+              <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,8 +234,8 @@ export default function BrowsePage() {
               <TableRow>
                 <TableCell colSpan={7} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <Inbox size={40} className="opacity-25" />
-                    <p className="text-sm">Empty folder</p>
+                    <FolderOpen size={40} strokeWidth={1.5} />
+                    <p className="text-sm">This folder is empty</p>
                   </div>
                 </TableCell>
               </TableRow>

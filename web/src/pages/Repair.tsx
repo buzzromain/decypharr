@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { RepairJobDialog } from '@/components/RepairJobDialog'
 import {
   Play,
   Square,
@@ -11,7 +12,8 @@ import {
   Clock,
   AlertCircle,
   Loader2,
-  Inbox,
+  ClipboardCheck,
+  ListTodo,
   Wrench,
   Search,
 } from 'lucide-react'
@@ -51,6 +53,7 @@ import { cn } from '@/lib/utils'
 
 export default function RepairPage() {
   const [formOpen, setFormOpen] = useState(true)
+  const [selectedJob, setSelectedJob] = useState<RepairJob | null>(null)
   const queryClient = useQueryClient()
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
@@ -103,13 +106,21 @@ export default function RepairPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Wrench size={20} />
+        <h1 className="text-2xl font-bold">Repair</h1>
+      </div>
+
       {/* Form section (collapsible) */}
       <div className="rounded-lg border border-border overflow-hidden">
         <button
           className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors"
           onClick={() => setFormOpen(o => !o)}
         >
-          <span>New Repair Job</span>
+          <span className="flex items-center gap-2">
+            <Wrench size={15} />
+            New Repair Job
+          </span>
           {formOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
         {formOpen && (
@@ -131,6 +142,14 @@ export default function RepairPage() {
         onStop={handleStop}
         onDelete={handleDelete}
         onRefresh={() => queryClient.invalidateQueries({ queryKey: ['repair-jobs'] })}
+        onSelect={setSelectedJob}
+      />
+
+      <RepairJobDialog
+        job={selectedJob}
+        onClose={() => setSelectedJob(null)}
+        onProcess={handleProcess}
+        onStop={handleStop}
       />
     </div>
   )
@@ -333,6 +352,7 @@ interface RepairJobsTableProps {
   onStop: (id: string) => void
   onDelete: (ids: string[]) => void
   onRefresh: () => void
+  onSelect: (job: RepairJob) => void
 }
 
 function RepairJobsTable({
@@ -342,6 +362,7 @@ function RepairJobsTable({
   onStop,
   onDelete,
   onRefresh,
+  onSelect,
 }: RepairJobsTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
@@ -369,7 +390,10 @@ function RepairJobsTable({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium">Repair Jobs</h2>
+        <h2 className="text-sm font-medium flex items-center gap-2">
+          <ListTodo size={15} />
+          Repair Jobs
+        </h2>
         <div className="flex items-center gap-2">
           {someSelected && (
             <Button size="sm" variant="outline" onClick={handleDeleteSelected}>
@@ -411,7 +435,7 @@ function RepairJobsTable({
               <TableRow>
                 <TableCell colSpan={8} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <Inbox size={40} className="opacity-25" />
+                    <ClipboardCheck size={40} strokeWidth={1.5} />
                     <p className="text-sm">No repair jobs yet</p>
                   </div>
                 </TableCell>
@@ -426,6 +450,7 @@ function RepairJobsTable({
                 onProcess={() => onProcess(job.id)}
                 onStop={() => onStop(job.id)}
                 onDelete={() => onDelete([job.id])}
+                onClick={() => onSelect(job)}
               />
             ))}
           </TableBody>
@@ -444,9 +469,10 @@ interface RepairJobRowProps {
   onProcess: () => void
   onStop: () => void
   onDelete: () => void
+  onClick: () => void
 }
 
-function RepairJobRow({ job, selected, onSelect, onProcess, onStop, onDelete }: RepairJobRowProps) {
+function RepairJobRow({ job, selected, onSelect, onProcess, onStop, onDelete, onClick }: RepairJobRowProps) {
   const scope =
     job.arrs?.includes('managed_entries') ? 'Managed Entries' : (job.arrs?.join(', ') ?? '—')
 
@@ -459,7 +485,7 @@ function RepairJobRow({ job, selected, onSelect, onProcess, onStop, onDelete }: 
   const isDone = job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled'
 
   return (
-    <TableRow data-state={selected ? 'selected' : undefined}>
+    <TableRow className="cursor-pointer" data-state={selected ? 'selected' : undefined} onClick={onClick}>
       <TableCell onClick={e => e.stopPropagation()}>
         <Checkbox checked={selected} onCheckedChange={onSelect} />
       </TableCell>
