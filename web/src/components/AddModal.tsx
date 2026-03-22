@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { CloudUpload } from 'lucide-react'
+import { FileDropZone } from '@/components/FileDropZone'
 import { addContent } from '@/api/torrents'
 import { getConfig } from '@/api/config'
 import { toast } from '@/hooks/use-toast'
@@ -15,21 +17,25 @@ interface AddModalProps {
   onClose: () => void
 }
 
+function FieldDescription({ children }: { children: React.ReactNode }) {
+  return <p className="text-xs text-muted-foreground">{children}</p>
+}
+
 export function AddModal({ open, onClose }: AddModalProps) {
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
 
-  const [magnetLinks, setMagnetLinks]     = useState('')
-  const [nzbUrls, setNzbUrls]             = useState('')
-  const [action, setAction]               = useState('symlink')
+  const [magnetLinks, setMagnetLinks]       = useState('')
+  const [nzbUrls, setNzbUrls]               = useState('')
+  const [torrentFiles, setTorrentFiles]     = useState<File[]>([])
+  const [nzbFiles, setNzbFiles]             = useState<File[]>([])
+  const [action, setAction]                 = useState('symlink')
   const [downloadFolder, setDownloadFolder] = useState('')
-  const [arrCategory, setArrCategory]     = useState('')
-  const [debrid, setDebrid]               = useState('')
+  const [arrCategory, setArrCategory]       = useState('')
+  const [debrid, setDebrid]                 = useState('')
   const [downloadUncached, setDownloadUncached] = useState(false)
   const [skipMultiSeason, setSkipMultiSeason]   = useState(false)
-
-  const torrentFilesRef = useRef<HTMLInputElement>(null)
-  const nzbFilesRef     = useRef<HTMLInputElement>(null)
+  const [rmTrackerUrls, setRmTrackerUrls]       = useState(false)
 
   const { data: config } = useQuery({ queryKey: ['config'], queryFn: getConfig, staleTime: 60_000 })
   const arrs    = config?.arrs    ?? []
@@ -43,29 +49,14 @@ export function AddModal({ open, onClose }: AddModalProps) {
     const urls = magnetLinks.split('\n').map(u => u.trim()).filter(Boolean)
     if (urls.length) formData.append('urls', urls.join('\n'))
 
-    const torrentFiles = torrentFilesRef.current?.files
-    if (torrentFiles) {
-      for (let i = 0; i < torrentFiles.length; i++) {
-        formData.append('files', torrentFiles[i])
-      }
-    }
+    for (const f of torrentFiles) formData.append('files', f)
 
     const nzbUrlList = nzbUrls.split('\n').map(u => u.trim()).filter(Boolean)
     if (nzbUrlList.length) formData.append('nzbURLs', nzbUrlList.join('\n'))
 
-    const nzbFilesList = nzbFilesRef.current?.files
-    if (nzbFilesList) {
-      for (let i = 0; i < nzbFilesList.length; i++) {
-        formData.append('nzbFiles', nzbFilesList[i])
-      }
-    }
+    for (const f of nzbFiles) formData.append('nzbFiles', f)
 
-    const total =
-      urls.length +
-      (torrentFiles?.length ?? 0) +
-      nzbUrlList.length +
-      (nzbFilesList?.length ?? 0)
-
+    const total = urls.length + torrentFiles.length + nzbUrlList.length + nzbFiles.length
     if (total === 0) {
       toast('Please provide at least one torrent or NZB', 'warning')
       return
@@ -76,6 +67,7 @@ export function AddModal({ open, onClose }: AddModalProps) {
     formData.append('arr',              arrCategory)
     formData.append('downloadUncached', String(downloadUncached))
     formData.append('skipMultiSeason',  String(skipMultiSeason))
+    formData.append('rmTrackerUrls',    String(rmTrackerUrls))
     if (debrid) formData.append('debrid', debrid)
 
     setLoading(true)
@@ -89,8 +81,8 @@ export function AddModal({ open, onClose }: AddModalProps) {
         queryClient.invalidateQueries({ queryKey: ['queue'] })
         setMagnetLinks('')
         setNzbUrls('')
-        if (torrentFilesRef.current) torrentFilesRef.current.value = ''
-        if (nzbFilesRef.current)     nzbFilesRef.current.value     = ''
+        setTorrentFiles([])
+        setNzbFiles([])
         onClose()
       }
       if (failures.length > 0) {
@@ -115,9 +107,10 @@ export function AddModal({ open, onClose }: AddModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Two input panels */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          {/* Two panels with OR divider */}
+          <div className="flex gap-4 items-stretch">
+            {/* Torrents */}
+            <div className="flex-1 space-y-2">
               <label className="text-sm font-medium">Magnet Links / Torrent URLs</label>
               <Textarea
                 value={magnetLinks}
@@ -125,16 +118,23 @@ export function AddModal({ open, onClose }: AddModalProps) {
                 placeholder={"Paste magnet links or torrent URLs\none per line..."}
                 className="h-24 font-mono text-xs"
               />
-              <input
-                ref={torrentFilesRef}
-                type="file"
+              <FileDropZone
                 accept=".torrent"
                 multiple
-                className="text-xs text-muted-foreground w-full file:mr-2 file:rounded file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-xs file:cursor-pointer"
+                files={torrentFiles}
+                onFiles={setTorrentFiles}
               />
             </div>
 
-            <div className="space-y-2">
+            {/* OR divider */}
+            <div className="flex flex-col items-center justify-center gap-2 px-2 select-none">
+              <div className="flex-1 w-px bg-border" />
+              <span className="text-xs text-muted-foreground font-semibold">OR</span>
+              <div className="flex-1 w-px bg-border" />
+            </div>
+
+            {/* NZBs */}
+            <div className="flex-1 space-y-2">
               <label className="text-sm font-medium">NZB URLs</label>
               <Textarea
                 value={nzbUrls}
@@ -142,12 +142,11 @@ export function AddModal({ open, onClose }: AddModalProps) {
                 placeholder={"Paste NZB URLs\none per line..."}
                 className="h-24 font-mono text-xs"
               />
-              <input
-                ref={nzbFilesRef}
-                type="file"
+              <FileDropZone
                 accept=".nzb"
                 multiple
-                className="text-xs text-muted-foreground w-full file:mr-2 file:rounded file:border-0 file:bg-secondary file:px-2 file:py-1 file:text-xs file:cursor-pointer"
+                files={nzbFiles}
+                onFiles={setNzbFiles}
               />
             </div>
           </div>
@@ -223,15 +222,39 @@ export function AddModal({ open, onClose }: AddModalProps) {
               />
               Skip multi-season checker
             </label>
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="rmTrackerUrls"
+                checked={rmTrackerUrls}
+                onCheckedChange={v => setRmTrackerUrls(!!v)}
+              />
+              <div>
+                <label htmlFor="rmTrackerUrls" className="text-sm font-medium cursor-pointer">
+                  Remove Tracker
+                </label>
+                <FieldDescription>
+                  Allows downloading private tracker torrents with lower risk.{' '}
+                  <a
+                    href="https://sirrobot01.github.io/decypharr/features/repair-worker/private-tracker-downloads"
+                    className="underline hover:text-foreground"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Learn more
+                  </a>
+                </FieldDescription>
+              </div>
+            </div>
           </div>
 
-          {/* Actions */}
+          {/* Submit */}
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Adding...' : 'Add to Queue'}
+              <CloudUpload size={16} className="mr-2" />
+              {loading ? 'Adding...' : 'Add to Download Queue'}
             </Button>
           </div>
         </form>

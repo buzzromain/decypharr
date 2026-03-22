@@ -18,6 +18,7 @@ import { useColumnVisibility, type ColumnId } from '@/hooks/useColumnVisibility'
 import { getQueueItems, deleteItem, deleteItems, type QueueItem } from '@/api/torrents'
 import { toast } from '@/hooks/use-toast'
 import { formatSize, formatSpeed } from '@/lib/format'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const SORT_OPTIONS = [
   { value: 'added_on|desc', label: 'Date Added (Newest)' },
@@ -45,6 +46,7 @@ const COLUMN_DEFS: { id: ColumnId; label: string }[] = [
 const LIMIT = 20
 
 export default function QueuePage() {
+  usePageTitle('Queue')
   const queryClient = useQueryClient()
 
   const [search, setSearch]           = useState('')
@@ -138,9 +140,9 @@ export default function QueuePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pb-2 border-b border-border/50">
         <Zap size={20} />
-        <h1 className="text-2xl font-bold">Queue</h1>
+        <h1 className="text-xl font-semibold">Queue</h1>
       </div>
 
       {/* Toolbar */}
@@ -238,7 +240,7 @@ export default function QueuePage() {
               {visibility.progress && <TableHead className="w-36"><span className="flex items-center gap-1.5"><Gauge size={13} className="text-muted-foreground" />Progress</span></TableHead>}
               {visibility.speed    && <TableHead className="w-24"><span className="flex items-center gap-1.5"><Download size={13} className="text-muted-foreground" />Speed</span></TableHead>}
               {visibility.category && <TableHead className="w-28"><span className="flex items-center gap-1.5"><Tag size={13} className="text-muted-foreground" />Category</span></TableHead>}
-              {visibility.protocol && <TableHead className="w-16"><span className="flex items-center gap-1.5"><Network size={13} className="text-muted-foreground" />Type</span></TableHead>}
+              {visibility.protocol && <TableHead className="w-24"><span className="flex items-center gap-1.5"><Network size={13} className="text-muted-foreground" />Type</span></TableHead>}
               {visibility.debrid   && <TableHead className="w-28"><span className="flex items-center gap-1.5"><Cloud size={13} className="text-muted-foreground" />Provider</span></TableHead>}
               {visibility.seeders  && <TableHead className="w-20"><span className="flex items-center gap-1.5"><Users size={13} className="text-muted-foreground" />Seeders</span></TableHead>}
               {visibility.status   && <TableHead className="w-28"><span className="flex items-center gap-1.5"><Activity size={13} className="text-muted-foreground" />Status</span></TableHead>}
@@ -257,7 +259,7 @@ export default function QueuePage() {
               <TableRow>
                 <TableCell colSpan={visibleColCount} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <Inbox size={40} className="opacity-25" />
+                    <Inbox size={40} className="opacity-30" />
                     <p className="text-sm">No items in queue</p>
                     <Button size="sm" onClick={() => setAddModalOpen(true)}>
                       <Plus size={14} />
@@ -438,14 +440,14 @@ function QueueRow({ item, selected, onSelect, onClick, visibility }: QueueRowPro
 function ProtocolBadge({ protocol }: { protocol: string }) {
   if (protocol === 'torrent') {
     return (
-      <span className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold bg-blue-500/20 text-blue-300">
-        T
+      <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium bg-sky-500/10 text-sky-400">
+        Torrent
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold bg-purple-500/20 text-purple-300">
-      N
+    <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium bg-purple-500/10 text-purple-400">
+      NZB
     </span>
   )
 }

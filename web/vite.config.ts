@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api':       { target: backend, changeOrigin: true, cookieDomainRewrite: '' },
+        '/debug':     { target: backend, changeOrigin: true, cookieDomainRewrite: '' },
+        '/version':   { target: backend, changeOrigin: true, cookieDomainRewrite: '' },
         '/login':     { target: backend, changeOrigin: true, cookieDomainRewrite: '' },
         '/register':  { target: backend, changeOrigin: true, cookieDomainRewrite: '' },
         '/skip-auth': { target: backend, changeOrigin: true, cookieDomainRewrite: '' },

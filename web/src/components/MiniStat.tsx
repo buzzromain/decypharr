@@ -14,14 +14,14 @@ export function MiniStat({ label, value, sub, percent }: MiniStatProps) {
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {label}
         </span>
-        {value && <span className="text-xs text-muted-foreground">{value}</span>}
+        {value && <span className="text-xs text-foreground/80">{value}</span>}
       </div>
       <Progress.Root
         value={percent ?? 0}
-        className="h-1 w-full overflow-hidden rounded-full bg-muted/60"
+        className="h-1 w-full overflow-hidden rounded-full bg-secondary"
       >
         <Progress.Indicator
-          className="h-full bg-primary/70 transition-all"
+          className="h-full bg-primary transition-all"
           style={{ transform: `translateX(-${100 - (percent ?? 0)}%)` }}
         />
       </Progress.Root>

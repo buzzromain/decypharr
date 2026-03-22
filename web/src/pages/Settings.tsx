@@ -5,6 +5,7 @@ import {
   SlidersHorizontal, Server, Tv, HardDrive, Bell, Lock, Wrench, Monitor,
   Cloud, Newspaper,
   KeyRound, Gauge, Globe, Clock, ToggleLeft, Database, Cpu, Settings2,
+  Film, Music, BookOpen, type LucideIcon,
 } from 'lucide-react'
 import { PasswordInput } from '@/components/PasswordInput'
 import { VirtualFolderList } from '@/components/VirtualFolderList'
@@ -40,6 +41,21 @@ import {
   DialogClose,
 } from '@/components/ui/dialog'
 import { scanLocalPurge, executeLocalPurge, scanProviderPurge, executeProviderPurge } from '@/api/maintenance'
+import { usePageTitle } from '@/hooks/usePageTitle'
+
+// ── ARR icons ────────────────────────────────────────────────────────────────
+
+const ARR_ICONS: Record<string, LucideIcon> = {
+  radarr:  Film,
+  sonarr:  Tv,
+  lidarr:  Music,
+  readarr: BookOpen,
+}
+
+function getArrIcon(name: string): LucideIcon {
+  const key = Object.keys(ARR_ICONS).find(k => name?.toLowerCase().includes(k))
+  return key ? ARR_ICONS[key] : Tv
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -780,10 +796,15 @@ function ArrsTab({
           <p className="text-sm">No Arr instances configured</p>
         </div>
       )}
-      {arrs.map((a, i) => (
+      {arrs.map((a, i) => {
+        const ArrIcon = getArrIcon(a.name ?? '')
+        return (
         <div key={i} className="rounded-md border p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{a.name || `Instance ${i + 1}`}</span>
+            <div className="flex items-center gap-2">
+              <ArrIcon size={16} className="text-muted-foreground" />
+              <span className="text-sm font-medium">{a.name || `Instance ${i + 1}`}</span>
+            </div>
             <Button size="sm" variant="ghost" onClick={() => remove(i)}>
               <Trash2 size={14} />
             </Button>
@@ -844,7 +865,8 @@ function ArrsTab({
             ))}
           </div>
         </div>
-      ))}
+      )
+      })}
     </div>
   )
 }
@@ -1640,6 +1662,7 @@ const SETTINGS_TABS = [
 ]
 
 export default function SettingsPage() {
+  usePageTitle('Settings')
   const queryClient = useQueryClient()
   const { data: config, isLoading } = useQuery({
     queryKey: ['config'],

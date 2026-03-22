@@ -6,11 +6,7 @@ interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPr
 }
 
 export function Progress({ className, value = 0, ...props }: ProgressProps) {
-  const color =
-    value >= 100 ? 'bg-green-500' :
-    value < 25   ? 'bg-red-500'   :
-    value < 75   ? 'bg-yellow-500' :
-                   'bg-blue-500'
+  const color = value >= 100 ? 'bg-green-500' : 'bg-primary'
 
   return (
     <ProgressPrimitive.Root

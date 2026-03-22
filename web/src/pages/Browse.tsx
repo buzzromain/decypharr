@@ -35,6 +35,7 @@ import {
 } from '@/api/browse'
 import { formatSize } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 type BrowseLevel = 'mount' | 'group' | 'torrent'
 type SortKey = 'name' | 'size' | 'mod_time' | 'active_debrid'
@@ -48,6 +49,7 @@ interface BrowsePath {
 const PAGE_SIZE = 20
 
 export default function BrowsePage() {
+  usePageTitle('Browse')
   const queryClient = useQueryClient()
 
   const [path, setPath] = useState<BrowsePath>({ level: 'mount' })
@@ -149,9 +151,9 @@ export default function BrowsePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pb-2 border-b border-border/50">
         <Folder size={20} />
-        <h1 className="text-2xl font-bold">Browse</h1>
+        <h1 className="text-xl font-semibold">Browse</h1>
       </div>
 
       {/* Toolbar */}
@@ -234,7 +236,7 @@ export default function BrowsePage() {
               <TableRow>
                 <TableCell colSpan={7} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <FolderOpen size={40} strokeWidth={1.5} />
+                    <FolderOpen size={40} strokeWidth={1.5} className="opacity-30" />
                     <p className="text-sm">This folder is empty</p>
                   </div>
                 </TableCell>
