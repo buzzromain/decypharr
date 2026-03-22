@@ -34,18 +34,18 @@ export function Sidebar() {
   const arrs: { name: string }[] = config?.arrs ?? []
 
   return (
-    <aside className="w-[260px] h-screen flex flex-col border-r border-border bg-card p-4 gap-4 overflow-y-auto shrink-0">
+    <aside className="w-[260px] h-screen flex flex-col border-r border-border bg-card p-4 gap-3 overflow-y-auto shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-2">
         <img src="/logo.png" alt="Decypharr" className="w-7 h-7 object-contain" />
-        <span className="font-bold text-lg">Decypharr</span>
+        <span className="font-bold text-base">Decypharr</span>
         <span className="text-xs text-muted-foreground ml-auto">{version?.version ?? ''}</span>
       </div>
 
       <hr className="border-border/50" />
 
       {/* Navigation */}
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-0.5">
         {NAV_ITEMS.map(item => (
           <NavLink key={item.path} to={item.path} icon={item.icon} label={item.label} />
         ))}
@@ -58,6 +58,7 @@ export function Sidebar() {
 
       {/* Mini-stats */}
       <div className="space-y-3">
+        <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Storage</p>
         <MiniStat label="Cache" value="-- / -- GB" sub="-- partial files" />
         <MiniStat label="Local Storage" value="-- / -- GB" sub="-- items" />
       </div>
@@ -66,7 +67,8 @@ export function Sidebar() {
       {(debrids.length > 0 || arrs.length > 0) && (
         <>
           <hr className="border-border/50" />
-          <div className="space-y-1">
+          <div className="space-y-0.5">
+            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Services</p>
             {debrids.map(d => (
               <ServiceIndicator
                 key={d.name}

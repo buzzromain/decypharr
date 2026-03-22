@@ -15,13 +15,14 @@ export function NavLink({ to, icon: Icon, label, badge }: NavLinkProps) {
     <Link
       to={to}
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-md text-[15px] transition-colors',
+        'flex items-center gap-2.5 pr-3 py-2 rounded-md text-sm transition-colors duration-100',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         match
-          ? 'bg-primary/40 text-foreground font-semibold'
-          : 'text-muted-foreground font-medium hover:text-foreground hover:bg-accent/60'
+          ? 'bg-primary/10 text-foreground font-semibold border-l-2 border-primary pl-[10px]'
+          : 'text-muted-foreground font-medium hover:text-foreground hover:bg-accent/50 border-l-2 border-transparent pl-[10px]'
       )}
     >
-      <Icon size={18} />
+      <Icon size={16} />
       <span className="flex-1">{label}</span>
       {badge != null && badge > 0 && (
         <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
