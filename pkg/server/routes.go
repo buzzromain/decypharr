@@ -53,7 +53,7 @@ func (s *Server) WebRoutes() http.Handler {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Write(data)
 		}
-		for _, route := range []string{"/", "/download", "/repair", "/stats", "/settings", "/browse", "/login", "/register", "/setup"} {
+		for _, route := range []string{"/", "/download", "/repair", "/stats", "/settings", "/browse", "/login", "/register", "/setup", "/logs"} {
 			r.Get(route, spaHandler)
 		}
 	} else {
@@ -136,6 +136,10 @@ func (s *Server) WebRoutes() http.Handler {
 				r.Get("/provider/{name}", s.handlePurgeProviderPreview)
 				r.Delete("/provider/{name}", s.handlePurgeProviderExecute)
 			})
+
+			// Logs
+			r.Get("/logs", s.handleGetLogs)
+			r.Get("/logs/stream", s.handleStreamLogs)
 
 			// Config/Auth
 			r.Get("/config", s.handleGetConfig)

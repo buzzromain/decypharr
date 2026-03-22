@@ -18,7 +18,13 @@ var (
 
 	rotatingLogFileOnce sync.Once
 	rotatingLogFile     *lumberjack.Logger
+
+	globalRingBuffer = NewRingBuffer(DefaultRingSize)
 )
+
+func GetRingBuffer() *RingBuffer {
+	return globalRingBuffer
+}
 
 func GetLogPath() string {
 	logsDir := filepath.Join(config.GetMainPath(), "logs")
@@ -54,9 +60,10 @@ func New(prefix string) zerolog.Logger {
 	rotatingLogFile := sharedRotatingLogFile()
 
 	consoleWriter := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: "2006-01-02 15:04:05",
-		NoColor:    false, // Set to true if you don't want colors
+		Out:           os.Stdout,
+		TimeFormat:    "2006-01-02 15:04:05",
+		NoColor:       false, // Set to true if you don't want colors
+		FieldsExclude: []string{"prefix"},
 		FormatLevel: func(i any) string {
 			var colorCode string
 			switch strings.ToLower(fmt.Sprintf("%s", i)) {
@@ -83,9 +90,10 @@ func New(prefix string) zerolog.Logger {
 	}
 
 	fileWriter := zerolog.ConsoleWriter{
-		Out:        rotatingLogFile,
-		TimeFormat: "2006-01-02 15:04:05",
-		NoColor:    true, // No colors in file output
+		Out:           rotatingLogFile,
+		TimeFormat:    "2006-01-02 15:04:05",
+		NoColor:       true, // No colors in file output
+		FieldsExclude: []string{"prefix"},
 		FormatLevel: func(i any) string {
 			return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
 		},
@@ -94,11 +102,12 @@ func New(prefix string) zerolog.Logger {
 		},
 	}
 
-	multi := zerolog.MultiLevelWriter(consoleWriter, fileWriter)
+	multi := zerolog.MultiLevelWriter(consoleWriter, fileWriter, globalRingBuffer)
 
 	logger := zerolog.New(multi).
 		With().
 		Timestamp().
+		Str("prefix", prefix).
 		Logger().
 		Level(zerolog.InfoLevel)
 
