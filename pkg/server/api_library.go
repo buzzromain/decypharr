@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -9,6 +10,21 @@ import (
 	"github.com/sirrobot01/decypharr/internal/utils"
 	"github.com/sirrobot01/decypharr/pkg/storage"
 )
+
+type TorrentFile struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	Type string `json:"type"` // "media" | "subs" | "info" | "extra"
+}
+
+type LibraryItemDetail struct {
+	LibraryItem
+	Files       []TorrentFile `json:"files"`
+	MountPath   string        `json:"mount_path"`
+	LocalPath   string        `json:"local_path"`
+	Provider    string        `json:"provider"`
+	TorrentName string        `json:"torrent_name"`
+}
 
 type LibraryItem struct {
 	Hash         string    `json:"hash"`
@@ -31,10 +47,25 @@ type LibraryItem struct {
 }
 
 func entryStatus(e *storage.Entry) string {
-	if e.State == storage.EntryStateError {
+	switch e.State {
+	case storage.EntryStateError:
 		return "error"
+	default:
+		return "debrid"
 	}
-	return "debrid"
+}
+
+func torrentFileType(name string) string {
+	switch strings.ToLower(path.Ext(name)) {
+	case ".mkv", ".mp4", ".avi", ".mov":
+		return "media"
+	case ".srt", ".ass", ".sub":
+		return "subs"
+	case ".nfo", ".txt":
+		return "info"
+	default:
+		return "extra"
+	}
 }
 
 func buildLibraryItem(entry *storage.Entry, media *storage.ArrMedia) LibraryItem {
@@ -133,5 +164,23 @@ func (s *Server) handleGetLibraryItem(w http.ResponseWriter, r *http.Request) {
 		media = &refs[0]
 	}
 
-	utils.JSONResponse(w, buildLibraryItem(entry, media), http.StatusOK)
+	files := make([]TorrentFile, 0, len(entry.Files))
+	for _, f := range entry.GetActiveFiles() {
+		files = append(files, TorrentFile{
+			Name: f.Name,
+			Size: f.Size,
+			Type: torrentFileType(f.Name),
+		})
+	}
+
+	detail := LibraryItemDetail{
+		LibraryItem: buildLibraryItem(entry, media),
+		Files:       files,
+		MountPath:   s.manager.GetTorrentMountPath(entry),
+		LocalPath:   "", // populated in Step 6 (Store Locally)
+		Provider:    entry.ActiveProvider,
+		TorrentName: entry.Name,
+	}
+
+	utils.JSONResponse(w, detail, http.StatusOK)
 }
