@@ -1,5 +1,19 @@
 import { apiClient } from './client'
 
+export interface TorrentFile {
+  name: string
+  size: number
+  type: 'media' | 'subs' | 'info' | 'extra'
+}
+
+export interface LibraryItemDetail extends LibraryItem {
+  files: TorrentFile[]
+  mount_path: string
+  local_path: string
+  provider: string
+  torrent_name: string
+}
+
 export interface LibraryItem {
   hash: string
   name: string
@@ -33,3 +47,6 @@ export const getLibrary = (filters: LibraryFilters) =>
 
 export const getLibraryItem = (hash: string) =>
   apiClient.get<LibraryItem>(`/library/${hash}`).then(r => r.data)
+
+export const getLibraryItemDetail = (hash: string) =>
+  apiClient.get<LibraryItemDetail>(`/library/${hash}`).then(r => r.data)

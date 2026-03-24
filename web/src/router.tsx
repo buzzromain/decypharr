@@ -8,6 +8,7 @@ import SettingsPage from './pages/Settings'
 import StatsPage from './pages/Stats'
 import LogsPage from './pages/Logs'
 import LibraryPage from './pages/Library'
+import MediaDetailPage from './pages/MediaDetail'
 import LoginPage from './pages/Login'
 import RegisterPage from './pages/Register'
 import SetupPage from './pages/Setup'
@@ -22,7 +23,7 @@ export const router = createBrowserRouter([
       { path: '/settings', element: <SettingsPage /> },
       { path: '/browse',   element: <BrowsePage /> },
       { path: '/library',  element: <LibraryPage /> },
-      { path: '/library/:hash', element: <LibraryPage /> },
+      { path: '/library/:hash', element: <MediaDetailPage /> },
       { path: '/logs',     element: <LogsPage /> },
     ],
   },
