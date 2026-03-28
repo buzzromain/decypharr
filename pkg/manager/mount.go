@@ -30,6 +30,7 @@ type MountManager interface {
 	IsReady() bool
 	Type() string
 	Refresh(dirs []string) error
+	GetCacheFiles() []CacheFileStat
 }
 
 func (m *Manager) RefreshEntries(refreshMount bool) {
@@ -175,3 +176,4 @@ func (s *stubMountManager) IsReady() bool {
 func (s *stubMountManager) Type() string {
 	return "none"
 }
+func (s *stubMountManager) GetCacheFiles() []CacheFileStat { return nil }

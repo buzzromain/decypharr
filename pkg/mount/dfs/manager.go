@@ -142,3 +142,11 @@ func (m *Manager) PurgeCache() (map[string]any, error) {
 func (m *Manager) Type() string {
 	return "dfs"
 }
+
+// GetCacheFiles implements MountManager.GetCacheFiles via the VFS layer.
+func (m *Manager) GetCacheFiles() []manager.CacheFileStat {
+	if m.vfs == nil {
+		return nil
+	}
+	return m.vfs.GetFiles()
+}

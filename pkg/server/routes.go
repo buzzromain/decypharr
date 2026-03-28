@@ -56,6 +56,7 @@ func (s *Server) WebRoutes() http.Handler {
 		for _, route := range []string{"/", "/download", "/repair", "/stats", "/settings", "/browse", "/login", "/register", "/setup", "/logs", "/library"} {
 			r.Get(route, spaHandler)
 		}
+		r.Get("/library/{hash}", spaHandler)
 	} else {
 		// Public routes - no auth needed (template-based GET pages)
 		r.Get("/login", s.LoginHandler)
@@ -140,6 +141,11 @@ func (s *Server) WebRoutes() http.Handler {
 			// Library
 			r.Get("/library", s.handleGetLibrary)
 			r.Get("/library/{hash}", s.handleGetLibraryItem)
+
+			// Cache
+			r.Get("/cache/stats", s.handleGetCacheStats)
+			r.Get("/cache/files", s.handleGetCacheFiles)
+			r.Get("/cache/files/{hash}", s.handleGetCacheFilesByHash)
 
 			// Logs
 			r.Get("/logs", s.handleGetLogs)

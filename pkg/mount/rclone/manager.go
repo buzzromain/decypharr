@@ -325,6 +325,8 @@ func (m *Manager) Type() string {
 	return "rclone"
 }
 
+func (m *Manager) GetCacheFiles() []manager.CacheFileStat { return nil }
+
 // waitForServer waits for the RC server to become available
 func (m *Manager) waitForServer() {
 	maxAttempts := 30

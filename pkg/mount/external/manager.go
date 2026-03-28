@@ -60,3 +60,5 @@ func (m *Manager) IsReady() bool {
 func (m *Manager) Type() string {
 	return "external"
 }
+
+func (m *Manager) GetCacheFiles() []manager.CacheFileStat { return nil }

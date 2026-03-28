@@ -166,9 +166,136 @@ func NewCache(ctx context.Context, mgr *manager.Manager, config *config.FuseConf
 		threshold: threshold,
 		pool:      pool,
 	}
+	c.logger.Info().
+		Str("cache_dir", config.CacheDir).
+		Str("max_size", utils.FormatSize(maxSize)).
+		Msg("cache: initialized")
+	c.restore()
 	go c.evictLoop()
 	go c.speedSampleLoop()
 	return c, nil
+}
+
+// restore pre-populates c.items from JSON metadata files left on disk by a previous session.
+func (c *Cache) restore() {
+	topEntries, err := os.ReadDir(c.config.CacheDir)
+	if err != nil {
+		c.logger.Warn().Err(err).Msg("restore: failed to read cache directory")
+		return
+	}
+
+	var restored int
+	for _, topEntry := range topEntries {
+		if !topEntry.IsDir() {
+			continue
+		}
+
+		entryName := topEntry.Name()
+		entryDir := filepath.Join(c.config.CacheDir, entryName)
+
+		subEntries, err := os.ReadDir(entryDir)
+		if err != nil {
+			continue
+		}
+
+		for _, sub := range subEntries {
+			if sub.IsDir() || !strings.HasSuffix(sub.Name(), ".json") {
+				continue
+			}
+
+			filename := strings.TrimSuffix(sub.Name(), ".json")
+			metaPath := filepath.Join(entryDir, sub.Name())
+			dataPath := filepath.Join(entryDir, filename)
+			key := buildCacheKey(entryName, filename)
+
+			// Skip if already loaded (shouldn't happen at startup, but be safe)
+			if _, ok := c.items.Load(key); ok {
+				continue
+			}
+
+			// Verify sparse file exists
+			if _, err := os.Stat(dataPath); err != nil {
+				continue
+			}
+
+			// Read and parse metadata
+			metaData, err := os.ReadFile(metaPath)
+			if err != nil {
+				continue
+			}
+			var info ItemInfo
+			if err := json.Unmarshal(metaData, &info); err != nil {
+				c.logger.Warn().Err(err).Str("key", key).Msg("restore: corrupt metadata, skipping")
+				continue
+			}
+
+			// Resolve storage entry — skip silently if the torrent was removed
+			entry, err := c.manager.GetEntryByName(entryName, filename)
+			if err != nil {
+				continue
+			}
+
+			// Translate persisted ranges into the buffer's seed format, same as newItem.
+			seed := make([]buffer.Range, 0, len(info.Rs))
+			for _, r := range info.Rs {
+				if r.Size > 0 {
+					seed = append(seed, buffer.Range{Off: r.Pos, Size: r.Size})
+				}
+			}
+
+			// item is referenced by the buffer's OnEvict closure below; assigned
+			// before OnEvict can fire, same as newItem.
+			var item *CacheItem
+
+			buf, err := c.pool.NewBuffer(buffer.Config{
+				MemorySize:    32 << 20,
+				DiskPath:      dataPath,
+				TotalSize:     info.Size,
+				InitialRanges: seed,
+				WritePolicy:   writePolicyFor(c.config),
+				OnEvict: func(off, length int64) {
+					if item != nil {
+						item.onBufferEvict(off, length)
+					}
+				},
+			})
+			if err != nil {
+				c.logger.Warn().Err(err).Str("key", key).Msg("restore: failed to open cache buffer")
+				continue
+			}
+
+			_logger := c.logger.With().Str("entry", entryName).Str("filename", filename).Logger()
+			log := logger.NewRateLimitedLogger(logger.WithLogger(_logger))
+
+			item = &CacheItem{
+				cache:    c,
+				key:      key,
+				entry:    entry,
+				filename: filename,
+				buf:      buf,
+				metaPath: metaPath,
+				info:     info,
+				logger:   log.Rate(key),
+			}
+			item.downloaders.Store(NewDownloaders(c.ctx, c.manager, item, c.config))
+			item.startMetaWriter()
+
+			// LoadOrStore in case a concurrent goroutine created the same item
+			if _, loaded := c.items.LoadOrStore(key, item); loaded {
+				item.stopMetaWriter()
+				_ = buf.Close()
+				continue
+			}
+
+			c.totalSize.Add(info.Rs.Size())
+			c.itemCount.Add(1)
+			restored++
+		}
+	}
+
+	if restored > 0 {
+		c.logger.Info().Int("count", restored).Msg("cache: restored items from disk")
+	}
 }
 
 // GetItem returns or creates a cache item for the given file
@@ -611,6 +738,7 @@ func (c *Cache) cleanupItems(now time.Time, forceZeroOpen bool) int {
 			return true
 		}
 		c.items.Delete(key)
+		c.logger.Debug().Str("key", key).Msg("cache: item evicted from memory (idle timeout)")
 		_ = item.Close()
 		c.itemCount.Add(-1)
 		evicted++
@@ -1213,6 +1341,7 @@ func (item *CacheItem) ReadAtContext(ctx context.Context, p []byte, off int64) (
 		item.cache.RecordCacheMiss()
 	}
 	if err != nil {
+		item.logger.Warn().Err(err).Int64("off", off).Int64("size", readSize).Msg("cache: download failed")
 		return 0, fmt.Errorf("download failed: %w", err)
 	}
 
@@ -1351,6 +1480,105 @@ func (item *CacheItem) Close() error {
 		}
 	})
 	return item.closeErr
+}
+
+// GetFiles returns per-file cache statistics.
+// It combines in-memory items (currently open or recently accessed) with
+// disk-resident items that have been evicted from the map but whose sparse
+// files still exist on disk.
+func (c *Cache) GetFiles() []manager.CacheFileStat {
+	var result []manager.CacheFileStat
+
+	// Phase 1: in-memory items (authoritative, most up-to-date ranges).
+	inMemory := make(map[string]struct{})
+	c.items.Range(func(key string, item *CacheItem) bool {
+		inMemory[key] = struct{}{}
+
+		item.metaMu.RLock()
+		info := item.info
+		item.metaMu.RUnlock()
+
+		cachedBytes := info.Rs.Size()
+		var pct float64
+		if info.Size > 0 {
+			pct = float64(cachedBytes) / float64(info.Size) * 100
+		}
+		result = append(result, manager.CacheFileStat{
+			Hash:         item.entry.InfoHash,
+			Filename:     item.filename,
+			Size:         info.Size,
+			CachedBytes:  cachedBytes,
+			CachePercent: pct,
+			LastAccess:   info.ATime,
+		})
+		return true
+	})
+
+	// Phase 2: disk-resident items not currently in memory.
+	// These are files that were streamed in a previous session or evicted after
+	// the idle timeout — they still exist on disk and should be reported.
+	topEntries, err := os.ReadDir(c.config.CacheDir)
+	if err != nil {
+		return result
+	}
+
+	for _, topEntry := range topEntries {
+		if !topEntry.IsDir() {
+			continue
+		}
+		entryName := topEntry.Name()
+		entryDir := filepath.Join(c.config.CacheDir, entryName)
+
+		subEntries, err := os.ReadDir(entryDir)
+		if err != nil {
+			continue
+		}
+
+		for _, sub := range subEntries {
+			if sub.IsDir() || !strings.HasSuffix(sub.Name(), ".json") {
+				continue
+			}
+			filename := strings.TrimSuffix(sub.Name(), ".json")
+			key := buildCacheKey(entryName, filename)
+
+			if _, ok := inMemory[key]; ok {
+				continue // already included from the in-memory phase
+			}
+
+			metaPath := filepath.Join(entryDir, sub.Name())
+			data, err := os.ReadFile(metaPath)
+			if err != nil {
+				continue
+			}
+			var info ItemInfo
+			if err := json.Unmarshal(data, &info); err != nil {
+				continue
+			}
+
+			// Resolve the storage entry to get the InfoHash.
+			// Skip silently if the torrent no longer exists.
+			entry, err := c.manager.GetEntryByName(entryName, filename)
+			if err != nil {
+				continue
+			}
+
+			cachedBytes := info.Rs.Size()
+			var pct float64
+			if info.Size > 0 {
+				pct = float64(cachedBytes) / float64(info.Size) * 100
+			}
+			result = append(result, manager.CacheFileStat{
+				Hash:         entry.InfoHash,
+				Filename:     filename,
+				Size:         info.Size,
+				CachedBytes:  cachedBytes,
+				CachePercent: pct,
+				LastAccess:   info.ATime,
+			})
+		}
+	}
+
+	return result
 }
 
 // Helper functions

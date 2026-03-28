@@ -70,6 +70,11 @@ func (f *File) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut)
 // Open creates file handle with VFS or DFS based on configuration
 // Reader is created eagerly here instead of lazily in Read() to surface errors early
 func (f *File) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	f.logger.Debug().
+		Str("file", f.info.Name()).
+		Str("parent", f.info.Parent()).
+		Int64("size", f.info.Size()).
+		Msg("fuse: file open")
 
 	var reader *vfs.StreamingFile
 	if f.info.IsRemote() && len(f.content) == 0 {

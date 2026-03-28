@@ -177,6 +177,14 @@ func (m *Manager) Close() error {
 	return nil
 }
 
+// GetFiles returns per-file cache statistics from the underlying cache.
+func (m *Manager) GetFiles() []manager.CacheFileStat {
+	if m.cache == nil {
+		return nil
+	}
+	return m.cache.GetFiles()
+}
+
 // GetStats returns manager statistics
 func (m *Manager) GetStats() map[string]any {
 	stats := map[string]any{
