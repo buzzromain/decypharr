@@ -889,7 +889,6 @@ func (c *Cache) evict() cleanupRunSummary {
 	evictionSkipped := false
 	removedKeys := map[string]struct{}{}
 
-	// If cache expiry is disabled and we're under threshold, skip disk scan.
 	if c.config.CacheExpiry <= 0 && (c.threshold <= 0 || totalSize <= c.threshold) {
 		evictionSkipped = true
 	} else {
@@ -1413,6 +1412,10 @@ func (item *CacheItem) WriteAtNoOverwrite(p []byte, off int64) (n, skipped int, 
 	item.info.Rs.Insert(writeRange)
 	item.metaMu.Unlock()
 	item.markMetadataDirty()
+
+	if newBytes := int64(n - skipped); newBytes > 0 {
+		item.cache.totalSize.Add(newBytes)
+	}
 	return n, skipped, nil
 }
 
