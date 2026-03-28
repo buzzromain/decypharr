@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getLibraryItemDetail } from '@/api/library'
+import { getCacheFiles, type CacheFileStat } from '@/api/cache'
 import { MediaDetailHeader } from '@/components/library/MediaDetailHeader'
 import { LocalStorageSection } from '@/components/library/LocalStorageSection'
 import { VFSCacheSection } from '@/components/library/VFSCacheSection'
@@ -22,6 +24,21 @@ export default function MediaDetailPage() {
     enabled: !!hash,
   })
 
+  const { data: cacheFiles = [] as CacheFileStat[] } = useQuery({
+    queryKey: ['cache-files', hash],
+    queryFn: () => getCacheFiles(hash),
+    enabled: !!hash,
+    refetchInterval: 5_000,
+  })
+
+  const cacheInfo = useMemo(() => {
+    if (!cacheFiles?.length) return { cachePercent: 0, cachedBytes: 0, size: 0, fileCount: 0 }
+    const totalSize = cacheFiles.reduce((sum, f) => sum + f.size, 0)
+    const totalCached = cacheFiles.reduce((sum, f) => sum + f.cached_bytes, 0)
+    const cachePercent = totalSize > 0 ? Math.round((totalCached / totalSize) * 100) : 0
+    return { cachePercent, cachedBytes: totalCached, size: totalSize, fileCount: cacheFiles.length }
+  }, [cacheFiles])
+
   usePageTitle(data?.title || data?.name || 'Media Detail')
 
   return (
@@ -39,8 +56,17 @@ export default function MediaDetailPage() {
         ) : data ? (
           <>
             <MediaDetailHeader item={data} />
-            <LocalStorageSection item={data} />
-            <VFSCacheSection />
+            <LocalStorageSection
+              item={data}
+              cachePercent={cacheInfo.cachePercent}
+              cachedBytes={cacheInfo.cachedBytes}
+            />
+            <VFSCacheSection
+              cachePercent={cacheInfo.cachePercent}
+              cachedBytes={cacheInfo.cachedBytes}
+              size={cacheInfo.size}
+              fileCount={cacheInfo.fileCount}
+            />
             <SeedingSection item={data} />
             <RepairSection hash={hash} />
             <TechnicalDetails item={data} />

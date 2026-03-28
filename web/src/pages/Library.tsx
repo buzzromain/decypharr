@@ -100,16 +100,9 @@ export default function LibraryPage() {
     refetchInterval: 10_000,
   })
 
-  // Fetch full arr list (no filters, so all arr names are always available)
-  const { data: arrSource = [] } = useQuery({
-    queryKey: ['library-arrs'],
-    queryFn: () => getLibrary({}),
-    staleTime: 60_000,
-  })
-
   const arrs = useMemo(
-    () => [...new Set(arrSource.map(i => i.arr_name).filter(Boolean))].sort() as string[],
-    [arrSource]
+    () => [...new Set(rawItems.map(i => i.arr_name).filter(Boolean))].sort() as string[],
+    [rawItems]
   )
 
   const items = useMemo(() => sortItems(rawItems, sortKey, sortDir), [rawItems, sortKey, sortDir])

@@ -5,6 +5,8 @@ import { NavLink } from './NavLink'
 import { MiniStat } from './MiniStat'
 import { ServiceIndicator } from './ServiceIndicator'
 import { apiClient } from '@/api/client'
+import { getCacheStats } from '@/api/cache'
+import { formatSize } from '@/lib/format'
 
 const NAV_ITEMS = [
   { path: '/',         icon: Zap,      label: 'Queue' },
@@ -28,6 +30,12 @@ export function Sidebar() {
   const { data: config } = useQuery({
     queryKey: ['config'],
     queryFn: () => apiClient.get('/config').then(r => r.data),
+    refetchInterval: 30_000,
+  })
+
+  const { data: cacheStats } = useQuery({
+    queryKey: ['cache-stats'],
+    queryFn: getCacheStats,
     refetchInterval: 30_000,
   })
 
@@ -60,7 +68,19 @@ export function Sidebar() {
       {/* Mini-stats */}
       <div className="space-y-3">
         <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">Storage</p>
-        <MiniStat label="Cache" value="-- / -- GB" sub="-- partial files" />
+        {cacheStats?.mount_ready === false ? (
+          <MiniStat
+            label="VFS Cache"
+            value="Not running"
+            sub="check cache_dir config"
+          />
+        ) : (
+          <MiniStat
+            label="VFS Cache"
+            value={cacheStats ? `${formatSize(cacheStats.cache_total_size)} / ${formatSize(cacheStats.cache_max_size)}` : '-- / --'}
+            sub={cacheStats ? `${cacheStats.cache_item_count} partial file${cacheStats.cache_item_count !== 1 ? 's' : ''}` : '--'}
+          />
+        )}
         <MiniStat label="Local Storage" value="-- / -- GB" sub="-- items" />
       </div>
 

@@ -5,9 +5,11 @@ import type { LibraryItemDetail } from '@/api/library'
 
 interface LocalStorageSectionProps {
   item: LibraryItemDetail
+  cachePercent?: number
+  cachedBytes?: number
 }
 
-export function LocalStorageSection({ item }: LocalStorageSectionProps) {
+export function LocalStorageSection({ item, cachePercent, cachedBytes }: LocalStorageSectionProps) {
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
       <div className="flex items-center gap-2">
@@ -42,6 +44,11 @@ export function LocalStorageSection({ item }: LocalStorageSectionProps) {
           <span title="Coming soon">
             <Button size="sm" variant="outline" disabled className="cursor-not-allowed opacity-50">
               Store locally
+              {!!cachePercent && cachedBytes !== undefined && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  {formatSize(cachedBytes)} cached · only {formatSize(item.size - cachedBytes)} to download
+                </span>
+              )}
             </Button>
           </span>
         </div>
