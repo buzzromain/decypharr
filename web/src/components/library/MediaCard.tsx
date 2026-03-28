@@ -11,9 +11,10 @@ interface MediaCardProps {
   selected?: boolean
   selectionMode?: boolean
   onSelect?: (hash: string) => void
+  cachePercent?: number
 }
 
-export function MediaCard({ item, selected = false, selectionMode = false, onSelect }: MediaCardProps) {
+export function MediaCard({ item, selected = false, selectionMode = false, onSelect, cachePercent = 0 }: MediaCardProps) {
   const navigate = useNavigate()
   const [imgError, setImgError] = useState(false)
 
@@ -63,7 +64,10 @@ export function MediaCard({ item, selected = false, selectionMode = false, onSel
             className="bg-background/80 border-white/50"
           />
         ) : (
-          <StatusBadge status={item.status} />
+          <StatusBadge
+            status={cachePercent > 0 ? 'cache' : item.status}
+            cachePercent={cachePercent > 0 ? cachePercent : undefined}
+          />
         )}
       </div>
 

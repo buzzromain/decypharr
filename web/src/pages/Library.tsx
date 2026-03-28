@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { getLibrary, type LibraryFilters, type LibraryItem } from '@/api/library'
+import { getAllCacheFiles } from '@/api/cache'
 import { LibraryGrid } from '@/components/library/LibraryGrid'
 import { LibraryList } from '@/components/library/LibraryList'
 import { SelectionBar } from '@/components/library/SelectionBar'
@@ -100,12 +101,32 @@ export default function LibraryPage() {
     refetchInterval: 10_000,
   })
 
+  const { data: allCacheFiles = [] } = useQuery({
+    queryKey: ['cache-files-all'],
+    queryFn: getAllCacheFiles,
+    refetchInterval: 30_000,
+  })
+
   const arrs = useMemo(
     () => [...new Set(rawItems.map(i => i.arr_name).filter(Boolean))].sort() as string[],
     [rawItems]
   )
 
   const items = useMemo(() => sortItems(rawItems, sortKey, sortDir), [rawItems, sortKey, sortDir])
+
+  const cachePercents = useMemo<Record<string, number>>(() => {
+    const totals: Record<string, { cached: number; size: number }> = {}
+    for (const f of allCacheFiles) {
+      if (!totals[f.hash]) totals[f.hash] = { cached: 0, size: 0 }
+      totals[f.hash].cached += f.cached_bytes
+      totals[f.hash].size   += f.size
+    }
+    const result: Record<string, number> = {}
+    for (const [hash, { cached, size }] of Object.entries(totals)) {
+      if (size > 0) result[hash] = Math.round((cached / size) * 100)
+    }
+    return result
+  }, [allCacheFiles])
 
   const movies = items.filter(i => i.media_type === 'movie').length
   const shows  = items.filter(i => i.media_type === 'show').length
@@ -173,6 +194,7 @@ export default function LibraryPage() {
             selectionMode={selectionMode}
             selected={selected}
             onSelect={handleSelect}
+            cachePercents={cachePercents}
           />
         ) : (
           <LibraryList
@@ -183,6 +205,7 @@ export default function LibraryPage() {
             sortKey={sortKey}
             sortDir={sortDir}
             onSort={handleSort}
+            cachePercents={cachePercents}
           />
         )}
       </div>

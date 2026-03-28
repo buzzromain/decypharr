@@ -21,3 +21,6 @@ export const getCacheStats = () =>
 
 export const getCacheFiles = (hash: string) =>
   apiClient.get<CacheFileStat[]>(`/cache/files/${hash}`).then(r => r.data)
+
+export const getAllCacheFiles = () =>
+  apiClient.get<CacheFileStat[]>('/cache/files').then(r => r.data ?? [])

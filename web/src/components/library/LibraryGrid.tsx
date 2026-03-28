@@ -9,9 +9,10 @@ interface LibraryGridProps {
   selectionMode: boolean
   selected: Set<string>
   onSelect: (hash: string) => void
+  cachePercents: Record<string, number>
 }
 
-export function LibraryGrid({ items, selectionMode, selected, onSelect }: LibraryGridProps) {
+export function LibraryGrid({ items, selectionMode, selected, onSelect, cachePercents }: LibraryGridProps) {
   const [visibleCount, setVisibleCount] = useState(BATCH)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -50,6 +51,7 @@ export function LibraryGrid({ items, selectionMode, selected, onSelect }: Librar
             selected={selected.has(item.hash)}
             selectionMode={selectionMode}
             onSelect={onSelect}
+            cachePercent={cachePercents[item.hash] ?? 0}
           />
         ))}
       </div>

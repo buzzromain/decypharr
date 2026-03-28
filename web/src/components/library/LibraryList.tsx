@@ -16,9 +16,10 @@ interface LibraryListProps {
   sortKey: string
   sortDir: 'asc' | 'desc'
   onSort: (key: string) => void
+  cachePercents: Record<string, number>
 }
 
-export function LibraryList({ items, selectionMode, selected, onSelect, sortKey, sortDir, onSort }: LibraryListProps) {
+export function LibraryList({ items, selectionMode, selected, onSelect, sortKey, sortDir, onSort, cachePercents }: LibraryListProps) {
   const navigate = useNavigate()
 
   const allSelected = items.length > 0 && items.every(i => selected.has(i.hash))
@@ -76,6 +77,7 @@ export function LibraryList({ items, selectionMode, selected, onSelect, sortKey,
               selectionMode={selectionMode}
               onSelect={onSelect}
               onNavigate={() => navigate(`/library/${item.hash}`)}
+              cachePercent={cachePercents[item.hash] ?? 0}
             />
           ))}
         </TableBody>
@@ -90,9 +92,10 @@ interface LibraryListRowProps {
   selectionMode: boolean
   onSelect: (hash: string) => void
   onNavigate: () => void
+  cachePercent?: number
 }
 
-function LibraryListRow({ item, selected, selectionMode, onSelect, onNavigate }: LibraryListRowProps) {
+function LibraryListRow({ item, selected, selectionMode, onSelect, onNavigate, cachePercent = 0 }: LibraryListRowProps) {
   const [imgError, setImgError] = useState(false)
   const displayTitle = item.title || item.name
 
@@ -139,7 +142,10 @@ function LibraryListRow({ item, selected, selectionMode, onSelect, onNavigate }:
         {item.media_type || '—'}
       </TableCell>
       <TableCell>
-        <StatusBadge status={item.status} />
+        <StatusBadge
+          status={cachePercent > 0 ? 'cache' : item.status}
+          cachePercent={cachePercent > 0 ? cachePercent : undefined}
+        />
       </TableCell>
       <TableCell>
         <ProtocolBadge protocol={item.protocol} />
