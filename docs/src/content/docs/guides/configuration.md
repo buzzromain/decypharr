@@ -99,12 +99,14 @@ Array of Debrid services:
 | `user_agent`                      | string | Custom User-Agent header                                                       | Default                         |
 | `slot_strategy`                   | string | Slot management strategy for AllDebrid: `remove_after_add` or `remove_oldest`  | `""` (disabled)                 |
 
-`limit`'s meaning depends on the provider: for **AllDebrid**, it caps the
-account's active torrents and is what `remove_oldest` enforces — leaving it
-unset does not mean unlimited, it falls back to AllDebrid's own ~5000 cap (see
-[Slot Management](./debrid/all-debrid/#slot-management)). For **RealDebrid**,
-it only sizes the page requested when listing torrents and defaults to 1000;
-RealDebrid's own account limits apply regardless of this setting.
+`limit`'s meaning depends on the provider. **AllDebrid ignores it entirely**:
+`remove_oldest` always enforces AllDebrid's own fixed ~5000-torrent cap (see
+[Slot Management](./debrid/all-debrid/#slot-management)) — setting `limit` on
+an AllDebrid entry is a config validation error, since a different value
+would just make `remove_oldest` enforce the wrong number against a real,
+unconfigurable constraint. For **RealDebrid**, `limit` only sizes the page
+requested when listing torrents and defaults to 1000; RealDebrid's own
+account limits apply regardless of this setting.
 
 ## Usenet
 
