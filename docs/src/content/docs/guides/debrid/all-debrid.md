@@ -31,8 +31,18 @@ AllDebrid has a limit of ~5000 active torrents. Use `slot_strategy` to automatic
 
 ### Strategies
 
-- **`remove_oldest`**: Before adding a new torrent, removes the oldest one if the limit is reached.
-- **`remove_after_add`**: After adding a cached torrent, removes it from AllDebrid to free the slot. File links remain functional — streaming still works. If links expire later, the repair system automatically re-inserts the torrent.
+- **`remove_oldest`**: Before adding a new torrent, removes the oldest one on
+  this AllDebrid account if the limit is reached. This looks at the whole
+  account, not just torrents Decypharr added — if you share this account with
+  another app, or added torrents to it directly on AllDebrid's own site,
+  `remove_oldest` can remove those too. It only ever acts on the account tied
+  to this `api_key`; if you configure more than one AllDebrid account in
+  Decypharr, each manages its own slot limit independently.
+- **`remove_after_add`**: Once a torrent finishes downloading — cached or not
+  — removes it from AllDebrid to free the slot. File links remain functional —
+  streaming still works. If links expire later, the repair system re-inserts
+  the torrent and this strategy frees the slot again, the same as on first
+  download.
 
 ### Configuration
 
