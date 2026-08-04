@@ -42,7 +42,9 @@ The **Settings > Maintenance** tab provides tools to clean up unmanaged entries.
 
 ### Local Cleanup
 
-Removes entries from Decypharr's database that were not added through an Arr app. This is useful after enabling managed-only on an existing setup — previously synced external torrents will have no Arr association.
+Removes entries no Arr app currently references: never added through one, or added through one that no longer tracks the media (deleted or upgraded there). This is useful after enabling managed-only on an existing setup — previously synced external torrents will have no Arr association.
+
+The check reads only `arr_refs`. A category on an entry does not exempt it.
 
 Torrents are **not deleted from the provider**, only from Decypharr's local storage.
 

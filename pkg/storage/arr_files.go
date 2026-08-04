@@ -133,3 +133,21 @@ func (s *Storage) FindArrFilesByFolder(folderPath string) ([]ArrFile, error) {
 	})
 	return refs, nil
 }
+
+// ReferencedInfoHashes returns every infohash an ArrFile still points at.
+// One pass over the index: callers use it to spot entries no arr references
+// any more, without paying a lookup per entry.
+func (s *Storage) ReferencedInfoHashes() (map[string]struct{}, error) {
+	referenced := make(map[string]struct{})
+	err := s.arrFiles.ForEach(func(_ string, value []byte) error {
+		var ref ArrFile
+		if err := json.Unmarshal(value, &ref); err != nil {
+			return nil
+		}
+		if ref.InfoHash != "" {
+			referenced[strings.ToLower(ref.InfoHash)] = struct{}{}
+		}
+		return nil
+	})
+	return referenced, err
+}
