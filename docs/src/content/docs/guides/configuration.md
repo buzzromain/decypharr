@@ -90,7 +90,7 @@ Array of Debrid services:
 | `proxy`                           | string | HTTP(S) proxy URL                                                              | `""`                            |
 | `unpack_rar`                      | bool   | Auto-extract RAR archives                                                      | `true`                          |
 | `minimum_free_slot`               | int    | Minimum free torrent slots to use this provider                                | `0`                             |
-| `limit`                           | int    | Max torrents allowed on this provider                                          | `0` (unlimited)                 |
+| `limit`                           | int    | Torrent count cap — meaning is provider-specific, see note below               | `0`                              |
 | `workers`                         | int    | Concurrent API workers                                                         | Auto (CPU * 50 / num_providers) |
 | `torrents_refresh_interval`       | string | How often to refresh torrent list                                              | `5m`                            |
 | `download_links_refresh_interval` | string | How often to refresh download links                                            | `10m`                           |
@@ -98,6 +98,13 @@ Array of Debrid services:
 | `use_torrent_file`                | bool   | Send .torrent file to provider instead of magnet link when available           | `true`                          |
 | `user_agent`                      | string | Custom User-Agent header                                                       | Default                         |
 | `slot_strategy`                   | string | Slot management strategy for AllDebrid: `remove_after_add` or `remove_oldest`  | `""` (disabled)                 |
+
+`limit`'s meaning depends on the provider: for **AllDebrid**, it caps the
+account's active torrents and is what `remove_oldest` enforces — leaving it
+unset does not mean unlimited, it falls back to AllDebrid's own ~5000 cap (see
+[Slot Management](./debrid/all-debrid/#slot-management)). For **RealDebrid**,
+it only sizes the page requested when listing torrents and defaults to 1000;
+RealDebrid's own account limits apply regardless of this setting.
 
 ## Usenet
 
