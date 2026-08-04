@@ -124,6 +124,14 @@ func TestMoveTorrent_ReappliesSlotStrategyAfterReinsertion(t *testing.T) {
 		t.Errorf("ActiveProvider = %q, want alldebrid", entry.ActiveProvider)
 	}
 
+	// MoveTorrent separately deletes the *previous* placement's ID in a
+	// goroutine when a fresh submission gets a different one — unrelated to
+	// remove_after_add and pre-existing. Left as ActiveProvider="alldebrid",
+	// the 2nd call below would capture oldID="id-1" and schedule that async
+	// delete too, racing with this test's synchronous assertions. Clearing it
+	// keeps this test isolated to the one thing it's meant to cover.
+	entry.ActiveProvider = ""
+
 	// Second re-insertion (a later repair): AddTorrentProvider replaces the
 	// placement with a fresh one (RemovedAt nil again). Before the fix this
 	// stayed nil forever; the slot must be freed a second time here.
