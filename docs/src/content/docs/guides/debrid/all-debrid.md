@@ -27,7 +27,7 @@ See [Configuration Reference](../configuration/#debrid-providers) for full optio
 
 ## Slot Management
 
-AllDebrid has a limit of ~1000 active torrents. Use `slot_strategy` to automatically manage slots:
+AllDebrid has a limit of ~5000 active torrents. Use `slot_strategy` to automatically manage slots:
 
 ### Strategies
 
@@ -44,7 +44,7 @@ AllDebrid has a limit of ~1000 active torrents. Use `slot_strategy` to automatic
       "name": "All Debrid",
       "api_key": "YOUR_API_KEY",
       "slot_strategy": "remove_oldest",
-      "limit": 1000
+      "limit": 5000
     }
   ]
 }
