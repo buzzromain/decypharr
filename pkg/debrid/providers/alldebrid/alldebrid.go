@@ -26,6 +26,11 @@ import (
 	"go.uber.org/ratelimit"
 )
 
+// defaultTorrentLimit is AllDebrid's own cap on simultaneously active
+// torrents. It is the fallback when the provider config leaves `limit` unset,
+// so slot management works out of the box instead of treating the limit as 0.
+const defaultTorrentLimit = 5000
+
 type AllDebrid struct {
 	Host                  string `json:"host"`
 	APIKey                string
@@ -586,15 +591,21 @@ func (ad *AllDebrid) CheckFile(ctx context.Context, _, link string) error {
 	return nil
 }
 
-func (ad *AllDebrid) GetAvailableSlots() (int, error) {
-	if ad.config.Limit == 0 {
-		return config.DefaultAvailableSlots, nil
+// torrentLimit returns the effective cap on active torrents: the configured
+// `limit` when set, otherwise AllDebrid's own limit.
+func (ad *AllDebrid) torrentLimit() int {
+	if ad.config.Limit > 0 {
+		return ad.config.Limit
 	}
+	return defaultTorrentLimit
+}
+
+func (ad *AllDebrid) GetAvailableSlots() (int, error) {
 	count, err := ad.countMagnets()
 	if err != nil {
 		return 0, err
 	}
-	available := ad.config.Limit - count - ad.config.MinimumFreeSlot
+	available := ad.torrentLimit() - count - ad.config.MinimumFreeSlot
 	if available < 0 {
 		available = 0
 	}
@@ -623,7 +634,7 @@ func (ad *AllDebrid) enforceSlotLimit() error {
 		return fmt.Errorf("alldebrid API error: Status: %d", resp.StatusCode)
 	}
 	magnets := res.Data.Magnets
-	if len(magnets) < ad.config.Limit {
+	if len(magnets) == 0 || len(magnets) < ad.torrentLimit() {
 		return nil
 	}
 	// Find the oldest magnet by UploadDate
