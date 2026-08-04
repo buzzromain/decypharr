@@ -2449,6 +2449,25 @@ class ConfigManager {
         `;
     }
 
+    // Lists what a purge would remove. Both scans return {name, size}; the count
+    // alone gave no way to check the list before running a destructive action.
+    renderPurgeList(container, items) {
+        if (!container) return;
+        if (!items.length) {
+            container.innerHTML = '';
+            return;
+        }
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[c]);
+        container.innerHTML = items.map(i => `
+            <div class="flex items-center justify-between gap-3 px-3 py-2">
+                <div class="truncate text-sm" title="${esc(i.name)}">${esc(i.name)}</div>
+                <div class="text-xs opacity-60 shrink-0">${window.decypharrUtils.formatBytes(i.size || 0)}</div>
+            </div>
+        `).join('');
+    }
+
     populateProviderSelect(debrids) {
         const select = document.getElementById('purgeProviderSelect');
         if (!select || !debrids) return;
@@ -2468,6 +2487,7 @@ class ConfigManager {
         const localPurgeBtn = document.getElementById('purgeLocalBtn');
         const localResult = document.getElementById('purgeLocalResult');
         const localCount = document.getElementById('purgeLocalCount');
+        const localList = document.getElementById('purgeLocalList');
 
         if (localScanBtn) {
             localScanBtn.addEventListener('click', async () => {
@@ -2477,6 +2497,7 @@ class ConfigManager {
                     if (!resp.ok) throw new Error(await resp.text());
                     const data = await resp.json();
                     localCount.textContent = data.count;
+                    this.renderPurgeList(localList, data.entries || []);
                     localResult.classList.remove('hidden');
                     if (data.count > 0) {
                         localPurgeBtn.classList.remove('hidden');
@@ -2502,6 +2523,7 @@ class ConfigManager {
                     window.decypharrUtils.createToast(`Purged ${data.deleted} entries.`, 'success');
                     localResult.classList.add('hidden');
                     localPurgeBtn.classList.add('hidden');
+                    if (localList) localList.innerHTML = '';
                 } catch (err) {
                     window.decypharrUtils.createToast('Purge failed: ' + err.message, 'error');
                 } finally {
@@ -2515,6 +2537,7 @@ class ConfigManager {
         const providerPurgeBtn = document.getElementById('purgeProviderBtn');
         const providerResult = document.getElementById('purgeProviderResult');
         const providerCount = document.getElementById('purgeProviderCount');
+        const providerList = document.getElementById('purgeProviderList');
         const providerSelect = document.getElementById('purgeProviderSelect');
 
         if (providerScanBtn) {
@@ -2530,6 +2553,7 @@ class ConfigManager {
                     if (!resp.ok) throw new Error(await resp.text());
                     const data = await resp.json();
                     providerCount.textContent = data.count;
+                    this.renderPurgeList(providerList, data.torrents || []);
                     providerResult.classList.remove('hidden');
                     if (data.count > 0) {
                         providerPurgeBtn.classList.remove('hidden');
@@ -2556,6 +2580,7 @@ class ConfigManager {
                     const data = await resp.json();
                     window.decypharrUtils.createToast(`Purged ${data.deleted} torrents from ${provider}.`, 'success');
                     providerResult.classList.add('hidden');
+                    if (providerList) providerList.innerHTML = '';
                     providerPurgeBtn.classList.add('hidden');
                 } catch (err) {
                     window.decypharrUtils.createToast('Purge failed: ' + err.message, 'error');
