@@ -50,4 +50,6 @@ AllDebrid has a limit of ~5000 active torrents. Use `slot_strategy` to automatic
 }
 ```
 
-The `limit` field defines the maximum number of torrents. `minimum_free_slot` reserves slots.
+The `limit` field defines the maximum number of torrents. It is optional — when
+omitted, AllDebrid's own limit of 5000 is used. Set it lower to stay under a
+self-imposed cap. `minimum_free_slot` reserves slots.
