@@ -98,9 +98,6 @@ func validateDebrids(debrids []Debrid) error {
 				return fmt.Errorf("invalid slot_strategy: %s (must be 'remove_after_add' or 'remove_oldest')", debrid.SlotStrategy)
 			}
 		}
-		if debrid.Provider == "alldebrid" && debrid.Limit != 0 {
-			return fmt.Errorf("limit is not configurable for alldebrid: it enforces its own fixed ~5000 torrent cap, remove this field")
-		}
 	}
 
 	return nil

@@ -26,12 +26,11 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-// torrentLimit is AllDebrid's own hard cap on simultaneously active torrents,
-// observed directly against their API rather than documented anywhere. It is
-// not configurable: `limit` in the provider config is never read here, since
-// setting it to anything else would just make enforceSlotLimit enforce the
-// wrong number against a real, fixed constraint.
-const torrentLimit = 5000
+// maxTorrentLimit is AllDebrid's own hard cap on simultaneously active
+// torrents, observed directly against their API rather than documented
+// anywhere. A configured `limit` above it is clamped down to it — it caps
+// what the user can request, it doesn't raise what AllDebrid allows.
+const maxTorrentLimit = 5000
 
 type AllDebrid struct {
 	Host                  string `json:"host"`
@@ -577,12 +576,22 @@ func (ad *AllDebrid) CheckFile(ctx context.Context, _, link string) error {
 	return nil
 }
 
+// torrentLimit returns the effective cap on active torrents: the configured
+// `limit`, clamped to AllDebrid's own maxTorrentLimit. Unset (<= 0) or above
+// the cap both resolve to the cap itself.
+func (ad *AllDebrid) torrentLimit() int {
+	if ad.config.Limit <= 0 || ad.config.Limit > maxTorrentLimit {
+		return maxTorrentLimit
+	}
+	return ad.config.Limit
+}
+
 func (ad *AllDebrid) GetAvailableSlots() (int, error) {
 	count, err := ad.countMagnets()
 	if err != nil {
 		return 0, err
 	}
-	available := torrentLimit - count - ad.config.MinimumFreeSlot
+	available := ad.torrentLimit() - count - ad.config.MinimumFreeSlot
 	if available < 0 {
 		available = 0
 	}
@@ -611,7 +620,7 @@ func (ad *AllDebrid) enforceSlotLimit() error {
 		return fmt.Errorf("alldebrid API error: Status: %d", resp.StatusCode)
 	}
 	magnets := res.Data.Magnets
-	if len(magnets) == 0 || len(magnets) < torrentLimit {
+	if len(magnets) == 0 || len(magnets) < ad.torrentLimit() {
 		return nil
 	}
 	// Find the oldest magnet by UploadDate

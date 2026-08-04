@@ -53,13 +53,13 @@ AllDebrid has a limit of ~5000 active torrents. Use `slot_strategy` to automatic
       "provider": "alldebrid",
       "name": "All Debrid",
       "api_key": "YOUR_API_KEY",
-      "slot_strategy": "remove_oldest"
+      "slot_strategy": "remove_oldest",
+      "limit": 5000
     }
   ]
 }
 ```
 
-The ~5000-torrent cap is fixed and not configurable — it's a real limit
-observed directly against AllDebrid's API, not a default. `limit` has no
-effect here and setting it is a config validation error; `minimum_free_slot`
-still works, and reserves slots below that fixed cap.
+The `limit` field defines the maximum number of torrents. It is optional — when
+omitted, AllDebrid's own limit of 5000 is used. Set it lower to stay under a
+self-imposed cap. `minimum_free_slot` reserves slots.
