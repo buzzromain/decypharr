@@ -1,4 +1,4 @@
-name: Beta Docker Build
+name: Custom Docker Build
 
 on:
   push:
@@ -17,29 +17,26 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      beta_version: ${{ steps.calculate_version.outputs.beta_version }}
+      version: ${{ steps.calculate_version.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Calculate beta version
+      - name: Resolve version
         id: calculate_version
         run: |
-          LATEST_TAG=$(git tag | grep -v 'beta' | sort -V | tail -n1)
-          echo "Found latest tag: ${LATEST_TAG}"
+          # This fork's own tags stop at v1.1.6, so describing against them
+          # reported v1.1.7 for a tree built on upstream 2.4. Fetch upstream's
+          # release tags into the runner instead — they are never pushed, which
+          # keeps release.yml (push: tags: v*) from firing on them.
+          git remote add upstream https://github.com/sirrobot01/decypharr.git 2>/dev/null || true
+          git fetch --quiet --tags upstream || true
 
-          IFS='.' read -r -a VERSION_PARTS <<< "$LATEST_TAG"
-          MAJOR="${VERSION_PARTS[0]}"
-          MINOR="${VERSION_PARTS[1]}"
-          PATCH="${VERSION_PARTS[2]}"
-
-          NEW_PATCH=$((PATCH + 1))
-          BETA_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-
-          echo "Calculated beta version: ${BETA_VERSION}"
-          echo "beta_version=${BETA_VERSION}" >> $GITHUB_OUTPUT
+          VERSION=$(git describe --tags --always)
+          echo "Resolved version: ${VERSION}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
   build:
     needs: prepare
@@ -84,8 +81,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           build-args: |
-            VERSION=${{ needs.prepare.outputs.beta_version }}
-            CHANNEL=beta
+            VERSION=${{ needs.prepare.outputs.version }}
+            CHANNEL=custom
           cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,scope=build-${{ env.PLATFORM_PAIR }},mode=max
           outputs: type=image,name=${{ env.DOCKERHUB_IMAGE }},push-by-digest=true,name-canonical=true,push=true
@@ -97,8 +94,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           build-args: |
-            VERSION=${{ needs.prepare.outputs.beta_version }}
-            CHANNEL=beta
+            VERSION=${{ needs.prepare.outputs.version }}
+            CHANNEL=custom
           cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
           outputs: type=image,name=${{ env.GHCR_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
@@ -167,13 +164,17 @@ jobs:
       - name: Create Docker Hub manifest and push
         working-directory: /tmp/digests/dockerhub
         run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           docker buildx imagetools create \
-            --tag ${{ env.DOCKERHUB_IMAGE }}:beta \
+            --tag ${{ env.DOCKERHUB_IMAGE }}:custom \
+            --tag ${{ env.DOCKERHUB_IMAGE }}:custom-$SHORT_SHA \
             $(printf '${{ env.DOCKERHUB_IMAGE }}@sha256:%s ' *)
 
       - name: Create GHCR manifest and push
         working-directory: /tmp/digests/ghcr
         run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           docker buildx imagetools create \
-            --tag ${{ env.GHCR_IMAGE }}:beta \
+            --tag ${{ env.GHCR_IMAGE }}:custom \
+            --tag ${{ env.GHCR_IMAGE }}:custom-$SHORT_SHA \
             $(printf '${{ env.GHCR_IMAGE }}@sha256:%s ' *)
