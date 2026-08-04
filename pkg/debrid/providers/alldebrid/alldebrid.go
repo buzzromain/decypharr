@@ -26,10 +26,11 @@ import (
 	"go.uber.org/ratelimit"
 )
 
-// defaultTorrentLimit is AllDebrid's own cap on simultaneously active
-// torrents. It is the fallback when the provider config leaves `limit` unset,
-// so slot management works out of the box instead of treating the limit as 0.
-const defaultTorrentLimit = 5000
+// maxTorrentLimit is AllDebrid's own hard cap on simultaneously active
+// torrents, observed directly against their API rather than documented
+// anywhere. A configured `limit` above it is clamped down to it — it caps
+// what the user can request, it doesn't raise what AllDebrid allows.
+const maxTorrentLimit = 5000
 
 type AllDebrid struct {
 	Host                  string `json:"host"`
@@ -578,12 +579,13 @@ func (ad *AllDebrid) CheckFile(ctx context.Context, _, link string) error {
 }
 
 // torrentLimit returns the effective cap on active torrents: the configured
-// `limit` when set, otherwise AllDebrid's own limit.
+// `limit`, clamped to AllDebrid's own maxTorrentLimit. Unset (<= 0) or above
+// the cap both resolve to the cap itself.
 func (ad *AllDebrid) torrentLimit() int {
-	if ad.config.Limit > 0 {
-		return ad.config.Limit
+	if ad.config.Limit <= 0 || ad.config.Limit > maxTorrentLimit {
+		return maxTorrentLimit
 	}
-	return defaultTorrentLimit
+	return ad.config.Limit
 }
 
 func (ad *AllDebrid) GetAvailableSlots() (int, error) {
