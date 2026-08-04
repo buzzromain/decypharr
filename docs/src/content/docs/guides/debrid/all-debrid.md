@@ -41,8 +41,8 @@ AllDebrid has a limit of ~5000 active torrents. Use `slot_strategy` to automatic
 - **`remove_after_add`**: Once a torrent finishes downloading — cached or not
   — removes it from AllDebrid to free the slot. File links remain functional —
   streaming still works. If links expire later, the repair system re-inserts
-  the torrent once; after that re-insertion, this strategy no longer applies
-  to it, so it stays on AllDebrid from then on.
+  the torrent and this strategy frees the slot again, the same as on first
+  download.
 
 ### Configuration
 
