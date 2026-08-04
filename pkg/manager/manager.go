@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -635,8 +636,22 @@ func (m *Manager) DeleteEntry(infohash string, removePlacements bool) error {
 	return nil
 }
 
-// GetUnmanagedEntries returns storage entries that have no category (not added through Arr apps).
+// GetUnmanagedEntries returns entries no arr currently references: nothing
+// that ever came through one, plus anything that did but that no arr still
+// tracks — the media was deleted or upgraded there, so nothing uses the
+// torrent now. A category on the entry does not exempt it; the only source
+// of truth is arr_refs.
+//
+// Derived at call time rather than stored: an incomplete arr_refs index (an
+// arr unreachable during the history bootstrap, a download_folder that has
+// since moved) only makes one scan wrong, and the next one is right again.
+// Nothing is written, so nothing has to be undone.
 func (m *Manager) GetUnmanagedEntries() ([]*storage.Entry, error) {
+	referenced, err := m.storage.ReferencedInfoHashes()
+	if err != nil {
+		return nil, err
+	}
+
 	queued := m.queue.ListFilter("", config.ProtocolAll, "", nil, "", false)
 	queuedHashes := make(map[string]bool, len(queued))
 	for _, e := range queued {
@@ -644,16 +659,20 @@ func (m *Manager) GetUnmanagedEntries() ([]*storage.Entry, error) {
 	}
 
 	var entries []*storage.Entry
-	err := m.storage.ForEach(func(entry *storage.Entry) error {
-		if entry.Category == "" && !queuedHashes[entry.InfoHash] {
-			entries = append(entries, entry)
+	err = m.storage.ForEach(func(entry *storage.Entry) error {
+		if queuedHashes[entry.InfoHash] {
+			return nil
 		}
+		if _, ok := referenced[strings.ToLower(entry.InfoHash)]; ok {
+			return nil
+		}
+		entries = append(entries, entry)
 		return nil
 	})
 	return entries, err
 }
 
-// PurgeUnmanagedEntries deletes storage entries that have no category.
+// PurgeUnmanagedEntries deletes the entries GetUnmanagedEntries reports.
 func (m *Manager) PurgeUnmanagedEntries() (int, error) {
 	entries, err := m.GetUnmanagedEntries()
 	if err != nil {
