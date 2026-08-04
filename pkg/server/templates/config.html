@@ -1726,7 +1726,8 @@ fe80::/10</textarea>
                                     </h3>
                                     <p class="text-sm text-base-content/70 mb-4">
                                         Remove entries no app currently tracks: never imported through Sonarr/Radarr,
-                                        or the media was later deleted or upgraded there.
+                                        or the media was later deleted or upgraded there. Only removes from
+                                        Decypharr's own database — the torrent stays on your debrid provider.
                                     </p>
                                     <div id="purgeLocalResult" class="hidden mb-4">
                                         <div class="alert alert-info">
@@ -1754,6 +1755,7 @@ fe80::/10</textarea>
                                     </h3>
                                     <p class="text-sm text-base-content/70 mb-4">
                                         Remove torrents from your debrid provider that are not managed by Decypharr.
+                                        This deletes from the provider itself and cannot be undone.
                                     </p>
                                     <div class="mb-4">
                                         <select class="select select-sm w-full" id="purgeProviderSelect">
