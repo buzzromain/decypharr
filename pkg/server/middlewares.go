@@ -84,7 +84,8 @@ func (s *Server) setupRedirectMiddleware(next http.Handler) http.Handler {
 			strings.HasPrefix(r.URL.Path, "/api/config") ||
 			strings.HasPrefix(r.URL.Path, "/assets") ||
 			strings.HasPrefix(r.URL.Path, "/images") ||
-			r.URL.Path == "/version" {
+			r.URL.Path == "/version" ||
+			isPublicRootAsset(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -102,4 +103,23 @@ func (s *Server) setupRedirectMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// publicRootAssets are the files Vite copies verbatim from web/public into
+// the build root (see routes.go's NotFound fallback) and that the SPA shell
+// (favicons, the sidebar logo, the setup page's footer icons) needs before
+// setup is complete.
+var publicRootAssets = map[string]struct{}{
+	"/favicon.ico":          {},
+	"/favicon.svg":          {},
+	"/favicon-16x16.png":    {},
+	"/favicon-32x32.png":    {},
+	"/apple-touch-icon.png": {},
+	"/logo.png":             {},
+	"/icons.svg":            {},
+}
+
+func isPublicRootAsset(path string) bool {
+	_, ok := publicRootAssets[path]
+	return ok
 }
