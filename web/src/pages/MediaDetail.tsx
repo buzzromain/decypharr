@@ -68,7 +68,7 @@ export default function MediaDetailPage() {
               fileCount={cacheInfo.fileCount}
             />
             <SeedingSection item={data} />
-            <RepairSection hash={hash} />
+            <RepairSection name={data.name} />
             <TechnicalDetails item={data} />
             {data.media_type === 'show' && <TVShowSections item={data} />}
           </>
