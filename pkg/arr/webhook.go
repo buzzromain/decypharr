@@ -3,6 +3,9 @@ package arr
 // Webhook event type constants as sent by Sonarr/Radarr v4.
 const (
 	EventTypeTest              = "Test"
+	EventTypeGrab              = "Grab"
+	EventTypeMovieAdded        = "MovieAdded"
+	EventTypeSeriesAdd         = "SeriesAdd"
 	EventTypeDownload          = "Download"
 	EventTypeEpisodeFileDelete = "EpisodeFileDelete"
 	EventTypeMovieFileDelete   = "MovieFileDelete"
@@ -10,6 +13,16 @@ const (
 	EventTypeSeriesDelete      = "SeriesDelete"
 	EventTypeMovieDelete       = "MovieDelete"
 )
+
+type WebhookImage struct {
+	CoverType string `json:"coverType"`
+	RemoteUrl string `json:"remoteUrl"`
+}
+
+type WebhookRelease struct {
+	Quality      string `json:"quality"`
+	ReleaseGroup string `json:"releaseGroup"`
+}
 
 // WebhookPayload represents the common payload sent by Sonarr/Radarr v4 webhooks.
 type WebhookPayload struct {
@@ -20,6 +33,8 @@ type WebhookPayload struct {
 	SourceFolder string `json:"sourceFolder,omitempty"`
 	DeleteReason string `json:"deleteReason,omitempty"`
 	DeletedFiles bool   `json:"deletedFiles,omitempty"`
+
+	Release *WebhookRelease `json:"release,omitempty"`
 
 	// Sonarr-specific fields
 	Series              *WebhookSeries  `json:"series,omitempty"`
@@ -33,16 +48,50 @@ type WebhookPayload struct {
 	RenamedMovieFiles []WebhookRename `json:"renamedMovieFiles,omitempty"`
 }
 
-// WebhookSeries carries series-level information (used in SeriesDelete events).
+// WebhookSeries carries series-level information (used in SeriesDelete and Download events).
 type WebhookSeries struct {
-	Id   int    `json:"id"`
-	Path string `json:"path"`
+	Id     int            `json:"id"`
+	Title  string         `json:"title"`
+	Year   int            `json:"year"`
+	TmdbId int            `json:"tmdbId"`
+	TvdbId int            `json:"tvdbId"`
+	ImdbId string         `json:"imdbId"`
+	Path   string         `json:"path"`
+	Genres []string       `json:"genres"`
+	Images []WebhookImage `json:"images"`
 }
 
-// WebhookMovie carries movie-level information (used in MovieDelete events).
+// PosterURL returns the remote URL of the poster image, or "" if absent.
+func (s *WebhookSeries) PosterURL() string {
+	for _, img := range s.Images {
+		if img.CoverType == "poster" {
+			return img.RemoteUrl
+		}
+	}
+	return ""
+}
+
+// WebhookMovie carries movie-level information (used in MovieDelete and Download events).
 type WebhookMovie struct {
-	Id         int    `json:"id"`
-	FolderPath string `json:"folderPath"`
+	Id         int            `json:"id"`
+	Title      string         `json:"title"`
+	Year       int            `json:"year"`
+	TmdbId     int            `json:"tmdbId"`
+	ImdbId     string         `json:"imdbId"`
+	FolderPath string         `json:"folderPath"`
+	Overview   string         `json:"overview"`
+	Genres     []string       `json:"genres"`
+	Images     []WebhookImage `json:"images"`
+}
+
+// PosterURL returns the remote URL of the poster image, or "" if absent.
+func (m *WebhookMovie) PosterURL() string {
+	for _, img := range m.Images {
+		if img.CoverType == "poster" {
+			return img.RemoteUrl
+		}
+	}
+	return ""
 }
 
 // WebhookFile carries file information within a webhook payload.

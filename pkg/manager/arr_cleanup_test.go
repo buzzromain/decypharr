@@ -111,12 +111,12 @@ func TestHandleArrImport_MatchingSourceFolder(t *testing.T) {
 
 	mgr.HandleArrImport("sonarr", payload)
 
-	ref, err := mgr.storage.GetArrFile(managedPath)
+	ref, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if ref == nil {
-		t.Fatal("expected ArrFile to be upserted, got nil")
+		t.Fatal("expected ArrMedia to be upserted, got nil")
 	}
 	if ref.InfoHash != "abcdef1234" {
 		t.Errorf("InfoHash = %q, want %q", ref.InfoHash, "abcdef1234")
@@ -136,12 +136,12 @@ func TestHandleArrImport_NonMatchingSourceFolder(t *testing.T) {
 
 	mgr.HandleArrImport("sonarr", payload)
 
-	ref, err := mgr.storage.GetArrFile(managedPath)
+	ref, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if ref != nil {
-		t.Error("expected nil ArrFile for non-matching sourceFolder")
+		t.Error("expected nil ArrMedia for non-matching sourceFolder")
 	}
 }
 
@@ -157,12 +157,12 @@ func TestHandleArrImport_EmptySourceFolderNoStoredEntry(t *testing.T) {
 
 	mgr.HandleArrImport("sonarr", payload)
 
-	ref, err := mgr.storage.GetArrFile(managedPath)
+	ref, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if ref != nil {
-		t.Error("expected nil ArrFile when sourceFolder empty and infohash not in storage")
+		t.Error("expected nil ArrMedia when sourceFolder empty and infohash not in storage")
 	}
 }
 
@@ -172,14 +172,14 @@ func TestHandleArrDelete_RemovesExistingFile(t *testing.T) {
 	mgr := newTestManager(t)
 
 	managedPath := filepath.Join("/media/tv", "Show", "s02e01.mkv")
-	ref := &storage.ArrFile{
+	ref := &storage.ArrMedia{
 		ArrName:     "sonarr",
 		ManagedPath: managedPath,
 		InfoHash:    "deletehash",
 		FileName:    "s02e01.mkv",
 	}
-	if err := mgr.storage.UpsertArrFile(ref); err != nil {
-		t.Fatalf("UpsertArrFile: %v", err)
+	if err := mgr.storage.UpsertArrMedia(ref); err != nil {
+		t.Fatalf("UpsertArrMedia: %v", err)
 	}
 
 	payload := &arr.WebhookPayload{
@@ -188,12 +188,12 @@ func TestHandleArrDelete_RemovesExistingFile(t *testing.T) {
 	}
 	mgr.HandleArrDelete("sonarr", payload)
 
-	got, err := mgr.storage.GetArrFile(managedPath)
+	got, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if got != nil {
-		t.Error("expected ArrFile to be deleted")
+		t.Error("expected ArrMedia to be deleted")
 	}
 }
 
@@ -217,14 +217,14 @@ func TestHandleArrRename_MigratesPath(t *testing.T) {
 	oldPath := filepath.Join("/media/tv", "Show", "old_name.mkv")
 	newPath := filepath.Join("/media/tv", "Show", "new_name.mkv")
 
-	ref := &storage.ArrFile{
+	ref := &storage.ArrMedia{
 		ArrName:     "sonarr",
 		ManagedPath: oldPath,
 		InfoHash:    "renamehash",
 		FileName:    "old_name.mkv",
 	}
-	if err := mgr.storage.UpsertArrFile(ref); err != nil {
-		t.Fatalf("UpsertArrFile: %v", err)
+	if err := mgr.storage.UpsertArrMedia(ref); err != nil {
+		t.Fatalf("UpsertArrMedia: %v", err)
 	}
 
 	payload := &arr.WebhookPayload{
@@ -235,20 +235,20 @@ func TestHandleArrRename_MigratesPath(t *testing.T) {
 	}
 	mgr.HandleArrRename("sonarr", payload)
 
-	old, err := mgr.storage.GetArrFile(oldPath)
+	old, err := mgr.storage.GetArrMedia(oldPath)
 	if err != nil {
-		t.Fatalf("GetArrFile old: %v", err)
+		t.Fatalf("GetArrMedia old: %v", err)
 	}
 	if old != nil {
 		t.Error("old path should be removed after rename")
 	}
 
-	newRef, err := mgr.storage.GetArrFile(newPath)
+	newRef, err := mgr.storage.GetArrMedia(newPath)
 	if err != nil {
-		t.Fatalf("GetArrFile new: %v", err)
+		t.Fatalf("GetArrMedia new: %v", err)
 	}
 	if newRef == nil {
-		t.Fatal("expected ArrFile at new path, got nil")
+		t.Fatal("expected ArrMedia at new path, got nil")
 	}
 	if newRef.InfoHash != ref.InfoHash {
 		t.Errorf("InfoHash = %q, want %q", newRef.InfoHash, ref.InfoHash)
@@ -261,16 +261,16 @@ func TestHandleArrSeriesDelete_DeletedFilesFalse_NoOp(t *testing.T) {
 	mgr := newTestManager(t)
 
 	managedPath := filepath.Join("/media/tv", "Series", "s01e01.mkv")
-	ref := &storage.ArrFile{
+	ref := &storage.ArrMedia{
 		ArrName:     "sonarr",
 		ManagedPath: managedPath,
 		InfoHash:    "serieskeephash",
 		FileName:    "s01e01.mkv",
 	}
-	if err := mgr.storage.UpsertArrFile(ref); err != nil {
-		t.Fatalf("UpsertArrFile: %v", err)
+	if err := mgr.storage.UpsertArrMedia(ref); err != nil {
+		t.Fatalf("UpsertArrMedia: %v", err)
 	}
-	t.Cleanup(func() { _, _ = mgr.storage.DeleteArrFile(managedPath) })
+	t.Cleanup(func() { _, _ = mgr.storage.DeleteArrMedia(managedPath) })
 
 	payload := &arr.WebhookPayload{
 		EventType:    arr.EventTypeSeriesDelete,
@@ -279,12 +279,12 @@ func TestHandleArrSeriesDelete_DeletedFilesFalse_NoOp(t *testing.T) {
 	}
 	mgr.HandleArrSeriesDelete("sonarr", payload)
 
-	got, err := mgr.storage.GetArrFile(managedPath)
+	got, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if got == nil {
-		t.Error("ArrFile should remain when deletedFiles=false")
+		t.Error("ArrMedia should remain when deletedFiles=false")
 	}
 }
 
@@ -334,7 +334,7 @@ func registerArrWithAllowDelete(mgr *Manager, name string) {
 //
 //	HandleArrSeriesDelete (AllowDelete=true)
 //	  → handleArrFolderDelete
-//	    → DeleteArrFile (all files under folder)
+//	    → DeleteArrMedia (all files under folder)
 //	    → deleteOrphanedEntry (last reference gone → Entry deleted)
 //
 // Both halves were already tested in isolation; this test proves the join works.
@@ -348,13 +348,13 @@ func TestHandleArrFolderDelete_AllowDeleteTrue_DeletesLastEntryReference(t *test
 	seedEntry(t, mgr, infohash)
 	for _, name := range []string{"s01e01.mkv", "s01e02.mkv"} {
 		p := filepath.Join(seriesPath, name)
-		if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+		if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 			ArrName:     "sonarr",
 			ManagedPath: p,
 			InfoHash:    infohash,
 			FileName:    name,
 		}); err != nil {
-			t.Fatalf("UpsertArrFile(%q): %v", p, err)
+			t.Fatalf("UpsertArrMedia(%q): %v", p, err)
 		}
 	}
 
@@ -364,26 +364,26 @@ func TestHandleArrFolderDelete_AllowDeleteTrue_DeletesLastEntryReference(t *test
 		Series:       &arr.WebhookSeries{Path: seriesPath},
 	})
 
-	// All ArrFiles under the folder must be gone.
+	// All ArrMedias under the folder must be gone.
 	for _, name := range []string{"s01e01.mkv", "s01e02.mkv"} {
 		p := filepath.Join(seriesPath, name)
-		got, err := mgr.storage.GetArrFile(p)
+		got, err := mgr.storage.GetArrMedia(p)
 		if err != nil {
-			t.Fatalf("GetArrFile(%q): %v", p, err)
+			t.Fatalf("GetArrMedia(%q): %v", p, err)
 		}
 		if got != nil {
-			t.Errorf("ArrFile at %q should be deleted", p)
+			t.Errorf("ArrMedia at %q should be deleted", p)
 		}
 	}
 
-	// Entry must be gone: it had no remaining ArrFile references.
+	// Entry must be gone: it had no remaining ArrMedia references.
 	if _, err := mgr.GetEntry(infohash); err == nil {
-		t.Error("Entry should be deleted when folder delete removes its last ArrFile reference")
+		t.Error("Entry should be deleted when folder delete removes its last ArrMedia reference")
 	}
 }
 
 // TestHandleArrFolderDelete_AllowDeleteTrue_PreservesSharedEntry verifies that
-// the Entry is NOT deleted when an ArrFile outside the deleted folder still
+// the Entry is NOT deleted when an ArrMedia outside the deleted folder still
 // references the same infohash. This is the negative control for the above test.
 func TestHandleArrFolderDelete_AllowDeleteTrue_PreservesSharedEntry(t *testing.T) {
 	mgr := newTestManager(t)
@@ -392,24 +392,24 @@ func TestHandleArrFolderDelete_AllowDeleteTrue_PreservesSharedEntry(t *testing.T
 	const infohash = "folder-entry-shared-ref"
 	seriesPath := filepath.Join("/media/tv", "FolderSharedEntryShow")
 
-	// ArrFile inside the folder – will be deleted by SeriesDelete.
+	// ArrMedia inside the folder – will be deleted by SeriesDelete.
 	folderFile := filepath.Join(seriesPath, "s01e01.mkv")
-	// ArrFile outside the folder – references the same infohash, must survive.
+	// ArrMedia outside the folder – references the same infohash, must survive.
 	outsideFile := filepath.Join("/media/tv", "FolderSharedEntryShowOther", "s02e01.mkv")
 
 	seedEntry(t, mgr, infohash)
 	for _, p := range []string{folderFile, outsideFile} {
-		if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+		if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 			ArrName:     "sonarr",
 			ManagedPath: p,
 			InfoHash:    infohash,
 			FileName:    filepath.Base(p),
 		}); err != nil {
-			t.Fatalf("UpsertArrFile(%q): %v", p, err)
+			t.Fatalf("UpsertArrMedia(%q): %v", p, err)
 		}
 	}
 	t.Cleanup(func() {
-		_, _ = mgr.storage.DeleteArrFile(outsideFile)
+		_, _ = mgr.storage.DeleteArrMedia(outsideFile)
 		_ = mgr.storage.Delete(infohash)
 	})
 
@@ -419,25 +419,25 @@ func TestHandleArrFolderDelete_AllowDeleteTrue_PreservesSharedEntry(t *testing.T
 		Series:       &arr.WebhookSeries{Path: seriesPath},
 	})
 
-	// The folder ArrFile must be gone.
-	if got, _ := mgr.storage.GetArrFile(folderFile); got != nil {
-		t.Error("ArrFile inside deleted folder should be removed")
+	// The folder ArrMedia must be gone.
+	if got, _ := mgr.storage.GetArrMedia(folderFile); got != nil {
+		t.Error("ArrMedia inside deleted folder should be removed")
 	}
 
-	// The outside ArrFile must survive.
-	if got, _ := mgr.storage.GetArrFile(outsideFile); got == nil {
-		t.Error("ArrFile outside deleted folder must not be removed")
+	// The outside ArrMedia must survive.
+	if got, _ := mgr.storage.GetArrMedia(outsideFile); got == nil {
+		t.Error("ArrMedia outside deleted folder must not be removed")
 	}
 
-	// Entry must survive: the outside ArrFile still references it.
+	// Entry must survive: the outside ArrMedia still references it.
 	if _, err := mgr.GetEntry(infohash); err != nil {
-		t.Error("Entry must be preserved when a sibling ArrFile outside the folder still references it")
+		t.Error("Entry must be preserved when a sibling ArrMedia outside the folder still references it")
 	}
 }
 
 // ── HandleArrSeriesDelete (active path) ───────────────────────────────────────
 
-func TestHandleArrSeriesDelete_DeletedFilesTrue_DeletesArrFiles(t *testing.T) {
+func TestHandleArrSeriesDelete_DeletedFilesTrue_DeletesArrMedias(t *testing.T) {
 	mgr := newTestManager(t)
 
 	seriesPath := filepath.Join("/media/tv", "SeriesT1")
@@ -446,13 +446,13 @@ func TestHandleArrSeriesDelete_DeletedFilesTrue_DeletesArrFiles(t *testing.T) {
 		filepath.Join(seriesPath, "s01e02.mkv"),
 	}
 	for _, p := range paths {
-		if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+		if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 			ArrName:     "sonarr",
 			ManagedPath: p,
 			InfoHash:    "series-del-hash",
 			FileName:    filepath.Base(p),
 		}); err != nil {
-			t.Fatalf("UpsertArrFile: %v", err)
+			t.Fatalf("UpsertArrMedia: %v", err)
 		}
 	}
 
@@ -464,31 +464,31 @@ func TestHandleArrSeriesDelete_DeletedFilesTrue_DeletesArrFiles(t *testing.T) {
 	mgr.HandleArrSeriesDelete("sonarr", payload)
 
 	for _, p := range paths {
-		got, err := mgr.storage.GetArrFile(p)
+		got, err := mgr.storage.GetArrMedia(p)
 		if err != nil {
-			t.Fatalf("GetArrFile(%q): %v", p, err)
+			t.Fatalf("GetArrMedia(%q): %v", p, err)
 		}
 		if got != nil {
-			t.Errorf("ArrFile at %q should be deleted after SeriesDelete, still present", p)
+			t.Errorf("ArrMedia at %q should be deleted after SeriesDelete, still present", p)
 		}
 	}
 }
 
 // ── HandleArrMovieDelete (active path) ────────────────────────────────────────
 
-func TestHandleArrMovieDelete_DeletedFilesTrue_DeletesArrFiles(t *testing.T) {
+func TestHandleArrMovieDelete_DeletedFilesTrue_DeletesArrMedias(t *testing.T) {
 	mgr := newTestManager(t)
 
 	movieFolder := filepath.Join("/media/movies", "MovieT2")
 	managedPath := filepath.Join(movieFolder, "film.mkv")
 
-	if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+	if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 		ArrName:     "radarr",
 		ManagedPath: managedPath,
 		InfoHash:    "movie-del-hash",
 		FileName:    "film.mkv",
 	}); err != nil {
-		t.Fatalf("UpsertArrFile: %v", err)
+		t.Fatalf("UpsertArrMedia: %v", err)
 	}
 
 	payload := &arr.WebhookPayload{
@@ -498,12 +498,12 @@ func TestHandleArrMovieDelete_DeletedFilesTrue_DeletesArrFiles(t *testing.T) {
 	}
 	mgr.HandleArrMovieDelete("radarr", payload)
 
-	got, err := mgr.storage.GetArrFile(managedPath)
+	got, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if got != nil {
-		t.Error("ArrFile should be deleted after MovieDelete with deletedFiles=true")
+		t.Error("ArrMedia should be deleted after MovieDelete with deletedFiles=true")
 	}
 }
 
@@ -516,15 +516,15 @@ func TestHandleArrDelete_AllowDelete_LastFileDeletesEntry(t *testing.T) {
 	const infohash = "orphan-hash"
 	managedPath := filepath.Join("/media/tv", "OrphanShow", "s03e01.mkv")
 
-	// Seed a storage Entry and a single ArrFile referencing it.
+	// Seed a storage Entry and a single ArrMedia referencing it.
 	seedEntry(t, mgr, infohash)
-	if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+	if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 		ArrName:     "sonarr",
 		ManagedPath: managedPath,
 		InfoHash:    infohash,
 		FileName:    "s03e01.mkv",
 	}); err != nil {
-		t.Fatalf("UpsertArrFile: %v", err)
+		t.Fatalf("UpsertArrMedia: %v", err)
 	}
 
 	payload := &arr.WebhookPayload{
@@ -533,22 +533,22 @@ func TestHandleArrDelete_AllowDelete_LastFileDeletesEntry(t *testing.T) {
 	}
 	mgr.HandleArrDelete("sonarr", payload)
 
-	// ArrFile must be gone.
-	arrFile, err := mgr.storage.GetArrFile(managedPath)
+	// ArrMedia must be gone.
+	arrFile, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if arrFile != nil {
-		t.Error("ArrFile should be deleted after EpisodeFileDelete")
+		t.Error("ArrMedia should be deleted after EpisodeFileDelete")
 	}
 
-	// Entry must be gone because no ArrFiles reference it any more.
+	// Entry must be gone because no ArrMedias reference it any more.
 	if _, err := mgr.GetEntry(infohash); err == nil {
-		t.Error("Entry should be deleted when it has no remaining ArrFile references")
+		t.Error("Entry should be deleted when it has no remaining ArrMedia references")
 	}
 }
 
-// ── deleteOrphanedEntry – sibling ArrFile protects the entry ─────────────────
+// ── deleteOrphanedEntry – sibling ArrMedia protects the entry ─────────────────
 
 func TestHandleArrDelete_AllowDelete_SiblingFilePreservesEntry(t *testing.T) {
 	mgr := newTestManager(t)
@@ -560,17 +560,17 @@ func TestHandleArrDelete_AllowDelete_SiblingFilePreservesEntry(t *testing.T) {
 
 	seedEntry(t, mgr, infohash)
 	for _, p := range []string{ep1, ep2} {
-		if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+		if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 			ArrName:     "sonarr",
 			ManagedPath: p,
 			InfoHash:    infohash,
 			FileName:    filepath.Base(p),
 		}); err != nil {
-			t.Fatalf("UpsertArrFile(%q): %v", p, err)
+			t.Fatalf("UpsertArrMedia(%q): %v", p, err)
 		}
 	}
 	t.Cleanup(func() {
-		_, _ = mgr.storage.DeleteArrFile(ep2)
+		_, _ = mgr.storage.DeleteArrMedia(ep2)
 		_ = mgr.storage.Delete(infohash)
 	})
 
@@ -582,26 +582,26 @@ func TestHandleArrDelete_AllowDelete_SiblingFilePreservesEntry(t *testing.T) {
 	mgr.HandleArrDelete("sonarr", payload)
 
 	// ep1 must be removed.
-	got, err := mgr.storage.GetArrFile(ep1)
+	got, err := mgr.storage.GetArrMedia(ep1)
 	if err != nil {
-		t.Fatalf("GetArrFile ep1: %v", err)
+		t.Fatalf("GetArrMedia ep1: %v", err)
 	}
 	if got != nil {
-		t.Error("ep1 ArrFile should be deleted")
+		t.Error("ep1 ArrMedia should be deleted")
 	}
 
 	// ep2 (sibling) must still exist.
-	sibling, err := mgr.storage.GetArrFile(ep2)
+	sibling, err := mgr.storage.GetArrMedia(ep2)
 	if err != nil {
-		t.Fatalf("GetArrFile ep2: %v", err)
+		t.Fatalf("GetArrMedia ep2: %v", err)
 	}
 	if sibling == nil {
-		t.Error("sibling ep2 ArrFile must not be deleted")
+		t.Error("sibling ep2 ArrMedia must not be deleted")
 	}
 
 	// Entry must survive because ep2 still references it.
 	if _, err := mgr.GetEntry(infohash); err != nil {
-		t.Error("Entry must be preserved while a sibling ArrFile still references it")
+		t.Error("Entry must be preserved while a sibling ArrMedia still references it")
 	}
 }
 
@@ -613,7 +613,7 @@ func TestHandleArrDelete_FallbackToDownloadId_DeletesEntry(t *testing.T) {
 
 	const infohash = "fallback-hash"
 
-	// Seed a storage Entry but NO ArrFile for the managed path,
+	// Seed a storage Entry but NO ArrMedia for the managed path,
 	// which is the scenario where the webhook was configured after the initial import.
 	seedEntry(t, mgr, infohash)
 
@@ -626,7 +626,7 @@ func TestHandleArrDelete_FallbackToDownloadId_DeletesEntry(t *testing.T) {
 
 	// Entry must be cleaned up via the DownloadId fallback.
 	if _, err := mgr.GetEntry(infohash); err == nil {
-		t.Error("Entry should be deleted via DownloadId fallback when no ArrFile was stored")
+		t.Error("Entry should be deleted via DownloadId fallback when no ArrMedia was stored")
 	}
 }
 
@@ -646,22 +646,22 @@ func TestHandleArrImport_Idempotent(t *testing.T) {
 	mgr.HandleArrImport("sonarr", payload)
 	mgr.HandleArrImport("sonarr", payload)
 
-	// Exactly one ArrFile must exist for this path.
-	ref, err := mgr.storage.GetArrFile(managedPath)
+	// Exactly one ArrMedia must exist for this path.
+	ref, err := mgr.storage.GetArrMedia(managedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile: %v", err)
+		t.Fatalf("GetArrMedia: %v", err)
 	}
 	if ref == nil {
-		t.Fatal("expected ArrFile after idempotent import, got nil")
+		t.Fatal("expected ArrMedia after idempotent import, got nil")
 	}
 
 	// Confirm only one record exists for this infohash in the arrFiles store.
-	refs, err := mgr.storage.FindArrFilesByInfoHash("idemp-hash")
+	refs, err := mgr.storage.FindArrMediaByInfoHash("idemp-hash")
 	if err != nil {
-		t.Fatalf("FindArrFilesByInfoHash: %v", err)
+		t.Fatalf("FindArrMediaByInfoHash: %v", err)
 	}
 	if len(refs) != 1 {
-		t.Errorf("expected exactly 1 ArrFile for infohash, got %d", len(refs))
+		t.Errorf("expected exactly 1 ArrMedia for infohash, got %d", len(refs))
 	}
 }
 
@@ -689,12 +689,12 @@ func TestHandleArrImport_MultipleEpisodeFiles(t *testing.T) {
 	mgr.HandleArrImport("sonarr", payload)
 
 	for _, p := range paths {
-		ref, err := mgr.storage.GetArrFile(p)
+		ref, err := mgr.storage.GetArrMedia(p)
 		if err != nil {
-			t.Fatalf("GetArrFile(%q): %v", p, err)
+			t.Fatalf("GetArrMedia(%q): %v", p, err)
 		}
 		if ref == nil {
-			t.Errorf("expected ArrFile at %q, got nil", p)
+			t.Errorf("expected ArrMedia at %q, got nil", p)
 		}
 	}
 }
@@ -709,16 +709,16 @@ func TestHandleArrRename_UnbalancedMismatch_OldDeletedNewSkipped(t *testing.T) {
 	newPath1 := filepath.Join("/media/tv", "UnbalShow", "s01e01.new.mkv")
 
 	for _, p := range []string{oldPath1, oldPath2} {
-		if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+		if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 			ArrName:     "sonarr",
 			ManagedPath: p,
 			InfoHash:    "unbal-hash",
 			FileName:    filepath.Base(p),
 		}); err != nil {
-			t.Fatalf("UpsertArrFile(%q): %v", p, err)
+			t.Fatalf("UpsertArrMedia(%q): %v", p, err)
 		}
 	}
-	t.Cleanup(func() { _, _ = mgr.storage.DeleteArrFile(newPath1) })
+	t.Cleanup(func() { _, _ = mgr.storage.DeleteArrMedia(newPath1) })
 
 	// Second entry has an empty new path, making prevPaths longer than newPaths.
 	payload := &arr.WebhookPayload{
@@ -731,15 +731,15 @@ func TestHandleArrRename_UnbalancedMismatch_OldDeletedNewSkipped(t *testing.T) {
 	mgr.HandleArrRename("sonarr", payload) // must not panic
 
 	// oldPath1 must be gone and its new path created.
-	if got, _ := mgr.storage.GetArrFile(oldPath1); got != nil {
+	if got, _ := mgr.storage.GetArrMedia(oldPath1); got != nil {
 		t.Error("oldPath1 should be removed")
 	}
-	if got, _ := mgr.storage.GetArrFile(newPath1); got == nil {
+	if got, _ := mgr.storage.GetArrMedia(newPath1); got == nil {
 		t.Error("newPath1 should be created for the balanced pair")
 	}
 
-	// oldPath2 must be removed (DeleteArrFile was called before the i>=len check).
-	if got, _ := mgr.storage.GetArrFile(oldPath2); got != nil {
+	// oldPath2 must be removed (DeleteArrMedia was called before the i>=len check).
+	if got, _ := mgr.storage.GetArrMedia(oldPath2); got != nil {
 		t.Error("oldPath2 should be deleted even in unbalanced case")
 	}
 }

@@ -2,7 +2,6 @@ package mock
 
 import (
 	"context"
-	"io"
 	"sync"
 	"testing"
 
@@ -133,6 +132,3 @@ func (m *MockService) RemoveEntry(_ *manager.FileInfo) error                  { 
 func (m *MockService) CopyEntry(_ *manager.FileInfo, _ string, _ bool) error  { return nil }
 func (m *MockService) TrackStream(_ *storage.Entry, _, _ string) string        { return "" }
 func (m *MockService) UntrackStream(_ string)                                  {}
-func (m *MockService) Stream(_ context.Context, _ *storage.Entry, _ string, _, _ int64, _ io.Writer, _ manager.StreamReadyFunc, _ string) error {
-	return nil
-}

@@ -60,19 +60,19 @@ func (m *Manager) RegisterArrWebhooks() {
 	}
 }
 
-// syncArrFiles queries the ARR import history at startup and upserts an ArrFile for
+// syncArrMedia queries the ARR import history at startup and upserts an ArrMedia for
 // each entry, covering media imported before webhooks were active or during downtime.
 // On first run, fetches from epoch. On subsequent runs, fetches only since the last
 // processed event date, making the sync incremental and fast.
-// Runs asynchronously; idempotent (UpsertArrFile overwrites existing records with the same path).
-func (m *Manager) syncArrFiles() {
+// Runs asynchronously; idempotent (UpsertArrMedia overwrites existing records with the same path).
+func (m *Manager) syncArrMedia() {
 	for _, a := range m.arr.GetAll() {
 		if a.Host == "" || a.Token == "" {
 			continue
 		}
 		go func(a *arr.Arr) {
 			downloadFolder := config.Get().DownloadFolder
-			since, _ := m.storage.GetArrFilesLastEventDate(a.Name)
+			since, _ := m.storage.GetArrMediaLastEventDate(a.Name)
 			records := a.GetImportHistorySince(since)
 			var maxDate time.Time
 			count := 0
@@ -90,17 +90,40 @@ func (m *Manager) syncArrFiles() {
 				} else if _, err := m.storage.Get(strings.ToLower(r.DownloadID)); err != nil {
 					continue
 				}
-				ref := &storage.ArrFile{
+				ref := &storage.ArrMedia{
 					ArrName:     a.Name,
 					ManagedPath: managedPath,
 					InfoHash:    strings.ToLower(r.DownloadID),
 					FileName:    filepath.Base(managedPath),
 				}
-				if err := m.storage.UpsertArrFile(ref); err != nil {
+				if r.Movie != nil {
+					ref.Title = r.Movie.Title
+					ref.Year = r.Movie.Year
+					ref.MediaType = "movie"
+					ref.Poster = r.Movie.PosterURL()
+					ref.TmdbId = r.Movie.TmdbId
+					ref.ImdbId = r.Movie.ImdbId
+					ref.Overview = r.Movie.Overview
+					ref.Genres = r.Movie.Genres
+				}
+				if r.Series != nil {
+					ref.Title = r.Series.Title
+					ref.Year = r.Series.Year
+					ref.MediaType = "show"
+					ref.Poster = r.Series.PosterURL()
+					ref.TmdbId = r.Series.TmdbId
+					ref.ImdbId = r.Series.ImdbId
+					ref.Genres = r.Series.Genres
+				}
+				if r.Quality != nil {
+					ref.Quality = r.Quality.Quality.Name
+				}
+				ref.ReleaseGroup = r.Data["releaseGroup"]
+				if err := m.storage.UpsertArrMedia(ref); err != nil {
 					m.logger.Debug().Err(err).
 						Str("arr", a.Name).
 						Str("managed_path", managedPath).
-						Msg("Failed to upsert arr file during sync")
+						Msg("Failed to upsert arr media during sync")
 					continue
 				}
 				if r.Date.After(maxDate) {
@@ -109,14 +132,14 @@ func (m *Manager) syncArrFiles() {
 				count++
 			}
 			if !maxDate.IsZero() {
-				if err := m.storage.SetArrFilesLastEventDate(a.Name, maxDate); err != nil {
+				if err := m.storage.SetArrMediaLastEventDate(a.Name, maxDate); err != nil {
 					m.logger.Debug().Err(err).Str("arr", a.Name).Msg("Failed to update last event date")
 				}
 			}
 			m.logger.Debug().
 				Str("arr", a.Name).
 				Int("files", count).
-				Msg("Synced arr files from history")
+				Msg("Synced arr media from history")
 		}(a)
 	}
 }
@@ -132,7 +155,7 @@ func isDecypharrSource(sourceFolder, downloadFolder string) bool {
 }
 
 // HandleArrImport is called on Sonarr/Radarr "Download" webhook events.
-// It upserts an ArrFile for each managed path in the payload,
+// It upserts an ArrMedia for each managed path in the payload,
 // but only when the import originated from Decypharr's download folder.
 func (m *Manager) HandleArrImport(arrName string, payload *arr.WebhookPayload) {
 	log := m.logger.With().
@@ -147,22 +170,45 @@ func (m *Manager) HandleArrImport(arrName string, payload *arr.WebhookPayload) {
 	}
 
 	for _, path := range payload.ManagedPaths() {
-		ref := &storage.ArrFile{
+		ref := &storage.ArrMedia{
 			ArrName:     arrName,
 			ManagedPath: path,
 			InfoHash:    strings.ToLower(payload.DownloadId),
 			FileName:    filepath.Base(path),
 		}
-		if err := m.storage.UpsertArrFile(ref); err != nil {
-			log.Error().Err(err).Str("managed_path", path).Msg("Failed to upsert arr file")
+		if payload.Movie != nil {
+			ref.Title = payload.Movie.Title
+			ref.Year = payload.Movie.Year
+			ref.MediaType = "movie"
+			ref.Poster = payload.Movie.PosterURL()
+			ref.TmdbId = payload.Movie.TmdbId
+			ref.ImdbId = payload.Movie.ImdbId
+			ref.Overview = payload.Movie.Overview
+			ref.Genres = payload.Movie.Genres
+		}
+		if payload.Series != nil {
+			ref.Title = payload.Series.Title
+			ref.Year = payload.Series.Year
+			ref.MediaType = "show"
+			ref.Poster = payload.Series.PosterURL()
+			ref.TmdbId = payload.Series.TmdbId
+			ref.ImdbId = payload.Series.ImdbId
+			ref.Genres = payload.Series.Genres
+		}
+		if payload.Release != nil {
+			ref.Quality = payload.Release.Quality
+			ref.ReleaseGroup = payload.Release.ReleaseGroup
+		}
+		if err := m.storage.UpsertArrMedia(ref); err != nil {
+			log.Error().Err(err).Str("managed_path", path).Msg("Failed to upsert arr media")
 			continue
 		}
-		log.Debug().Str("managed_path", path).Str("infohash", ref.InfoHash).Msg("Arr file upserted")
+		log.Debug().Str("managed_path", path).Str("infohash", ref.InfoHash).Msg("Arr media upserted")
 	}
 }
 
 // HandleArrDelete is called on "EpisodeFileDelete" / "MovieFileDelete" events.
-// It removes the ArrFile, then cleans up the debrid entry if no files remain for its infohash.
+// It removes the ArrMedia, then cleans up the debrid entry if no files remain for its infohash.
 func (m *Manager) HandleArrDelete(arrName string, payload *arr.WebhookPayload) {
 	log := m.logger.With().
 		Str("component", "arr_webhook").
@@ -174,19 +220,19 @@ func (m *Manager) HandleArrDelete(arrName string, payload *arr.WebhookPayload) {
 	allowDelete := a != nil && a.AllowDelete
 
 	for _, path := range payload.ManagedPaths() {
-		ref, err := m.storage.DeleteArrFile(path)
+		ref, err := m.storage.DeleteArrMedia(path)
 		if err != nil {
-			log.Error().Err(err).Str("managed_path", path).Msg("Failed to delete arr file")
+			log.Error().Err(err).Str("managed_path", path).Msg("Failed to delete arr media")
 			continue
 		}
 		if ref == nil {
-			// No file stored – webhook may have been configured after the initial import.
+			// No record stored – webhook may have been configured after the initial import.
 			// Fall back to DownloadId when available.
 			if payload.DownloadId != "" && allowDelete {
-				log.Debug().Str("managed_path", path).Msg("No arr file found, falling back to download ID")
+				log.Debug().Str("managed_path", path).Msg("No arr media found, falling back to download ID")
 				m.deleteOrphanedEntry(strings.ToLower(payload.DownloadId))
 			} else {
-				log.Debug().Str("managed_path", path).Msg("No arr file found, skipping")
+				log.Debug().Str("managed_path", path).Msg("No arr media found, skipping")
 			}
 			continue
 		}
@@ -197,7 +243,7 @@ func (m *Manager) HandleArrDelete(arrName string, payload *arr.WebhookPayload) {
 }
 
 // HandleArrRename is called on "Rename" webhook events.
-// It migrates ArrFiles from previous paths to their new paths.
+// It migrates ArrMedia records from previous paths to their new paths.
 func (m *Manager) HandleArrRename(arrName string, payload *arr.WebhookPayload) {
 	log := m.logger.With().
 		Str("component", "arr_webhook").
@@ -209,30 +255,26 @@ func (m *Manager) HandleArrRename(arrName string, payload *arr.WebhookPayload) {
 	newPaths := payload.ManagedPaths()
 
 	for i, prev := range prevPaths {
-		ref, err := m.storage.DeleteArrFile(prev)
+		ref, err := m.storage.DeleteArrMedia(prev)
 		if err != nil {
-			log.Error().Err(err).Str("previous_path", prev).Msg("Failed to delete old arr file")
+			log.Error().Err(err).Str("previous_path", prev).Msg("Failed to delete old arr media")
 			continue
 		}
 		if ref == nil {
-			log.Debug().Str("previous_path", prev).Msg("No previous arr file found")
+			log.Debug().Str("previous_path", prev).Msg("No previous arr media found")
 			continue
 		}
 		if i >= len(newPaths) {
 			log.Warn().Str("previous_path", prev).Msg("No corresponding new path for rename")
 			continue
 		}
-		newRef := &storage.ArrFile{
-			ArrName:     ref.ArrName,
-			ManagedPath: newPaths[i],
-			InfoHash:    ref.InfoHash,
-			FileName:    ref.FileName,
-		}
-		if err := m.storage.UpsertArrFile(newRef); err != nil {
-			log.Error().Err(err).Str("new_path", newPaths[i]).Msg("Failed to upsert new arr file")
+		newRef := *ref
+		newRef.ManagedPath = newPaths[i]
+		if err := m.storage.UpsertArrMedia(&newRef); err != nil {
+			log.Error().Err(err).Str("new_path", newPaths[i]).Msg("Failed to upsert new arr media")
 			continue
 		}
-		log.Debug().Str("previous_path", prev).Str("new_path", newPaths[i]).Msg("Arr file renamed")
+		log.Debug().Str("previous_path", prev).Str("new_path", newPaths[i]).Msg("Arr media renamed")
 	}
 }
 
@@ -266,26 +308,26 @@ func (m *Manager) HandleArrMovieDelete(arrName string, payload *arr.WebhookPaylo
 	m.handleArrFolderDelete(log, arrName, payload.Movie.FolderPath, a != nil && a.AllowDelete)
 }
 
-// handleArrFolderDelete finds all arr files tracked for arrName under folderPath and cleans up
-// each one. Scoped to arrName so this ARR's delete event can't touch another ARR's tracked
-// files. Entry deletion is gated on allowDelete.
+// handleArrFolderDelete finds all ArrMedia records tracked for arrName under folderPath and
+// cleans up each one. Scoped to arrName so this ARR's delete event can't touch another ARR's
+// tracked media. Entry deletion is gated on allowDelete.
 func (m *Manager) handleArrFolderDelete(log zerolog.Logger, arrName, folderPath string, allowDelete bool) {
 	log = log.With().Str("folder_path", folderPath).Logger()
 
-	refs, err := m.storage.FindArrFilesByFolder(arrName, folderPath)
+	refs, err := m.storage.FindArrMediaByFolder(arrName, folderPath)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to find arr files by folder")
+		log.Error().Err(err).Msg("Failed to find arr media by folder")
 		return
 	}
 	if len(refs) == 0 {
-		log.Debug().Msg("No arr files found for folder, nothing to clean up")
+		log.Debug().Msg("No arr media found for folder, nothing to clean up")
 		return
 	}
 
 	infohashes := make(map[string]struct{})
 	for _, ref := range refs {
-		if _, err := m.storage.DeleteArrFile(ref.ManagedPath); err != nil {
-			log.Error().Err(err).Str("managed_path", ref.ManagedPath).Msg("Failed to delete arr file")
+		if _, err := m.storage.DeleteArrMedia(ref.ManagedPath); err != nil {
+			log.Error().Err(err).Str("managed_path", ref.ManagedPath).Msg("Failed to delete arr media")
 			continue
 		}
 		infohashes[ref.InfoHash] = struct{}{}
@@ -297,7 +339,7 @@ func (m *Manager) handleArrFolderDelete(log zerolog.Logger, arrName, folderPath 
 	}
 }
 
-// deleteOrphanedEntry removes the Decypharr entry for infohash only when no ArrFile
+// deleteOrphanedEntry removes the Decypharr entry for infohash only when no ArrMedia
 // still references it, ensuring multi-file torrents are not deleted prematurely.
 func (m *Manager) deleteOrphanedEntry(infohash string) {
 	log := m.logger.With().
@@ -305,9 +347,9 @@ func (m *Manager) deleteOrphanedEntry(infohash string) {
 		Str("infohash", infohash).
 		Logger()
 
-	remaining, err := m.storage.FindArrFilesByInfoHash(infohash)
+	remaining, err := m.storage.FindArrMediaByInfoHash(infohash)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to find remaining arr files")
+		log.Error().Err(err).Msg("Failed to find remaining arr media")
 		return
 	}
 	if len(remaining) > 0 {
@@ -320,8 +362,15 @@ func (m *Manager) deleteOrphanedEntry(infohash string) {
 		return
 	}
 
-	log.Info().Msg("No ARR files remaining, deleting entry")
+	log.Info().Msg("No ARR media remaining, deleting entry")
 	if err := m.DeleteEntry(infohash, true); err != nil {
 		log.Error().Err(err).Msg("Failed to delete entry")
+		return
+	}
+
+	// Safety cleanup: remove any orphaned ArrMedia records for this hash.
+	refs, _ := m.storage.FindArrMediaByInfoHash(infohash)
+	for _, ref := range refs {
+		_, _ = m.storage.DeleteArrMedia(ref.ManagedPath)
 	}
 }

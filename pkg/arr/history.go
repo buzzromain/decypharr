@@ -78,18 +78,6 @@ type HistorySchema struct {
 	Records       []HistoryRecord `json:"records"`
 }
 
-// HistoryRecord is a single record from the ARR history APIs.
-type HistoryRecord struct {
-	ID         int               `json:"id"`
-	DownloadID string            `json:"downloadId"`
-	EventType  string            `json:"eventType"`
-	EpisodeID  int               `json:"episodeId,omitempty"`
-	SeriesID   int               `json:"seriesId,omitempty"`
-	MovieID    int               `json:"movieId,omitempty"`
-	Date       time.Time         `json:"date"`
-	Data       map[string]string `json:"data"`
-}
-
 type QueueResponseScheme struct {
 	Page          int           `json:"page"`
 	PageSize      int           `json:"pageSize"`
@@ -353,6 +341,45 @@ func (a *Arr) ManualImportItems(items map[string]bool) error {
 	return nil
 }
 
+type HistoryMedia struct {
+	Title    string         `json:"title"`
+	Year     int            `json:"year"`
+	TmdbId   int            `json:"tmdbId"`
+	ImdbId   string         `json:"imdbId"`
+	Overview string         `json:"overview"`
+	Genres   []string       `json:"genres"`
+	Images   []WebhookImage `json:"images"`
+}
+
+// PosterURL returns the remote URL of the poster image, or "" if absent.
+func (h *HistoryMedia) PosterURL() string {
+	for _, img := range h.Images {
+		if img.CoverType == "poster" {
+			return img.RemoteUrl
+		}
+	}
+	return ""
+}
+
+// HistoryRecord is a single record from the ARR history APIs.
+type HistoryRecord struct {
+	ID         int               `json:"id"`
+	DownloadID string            `json:"downloadId"`
+	EventType  string            `json:"eventType"`
+	EpisodeID  int               `json:"episodeId,omitempty"`
+	SeriesID   int               `json:"seriesId,omitempty"`
+	MovieID    int               `json:"movieId,omitempty"`
+	Date       time.Time         `json:"date"`
+	Data       map[string]string `json:"data"`
+	Quality    *struct {
+		Quality struct {
+			Name string `json:"name"`
+		} `json:"quality"`
+	} `json:"quality,omitempty"`
+	Movie  *HistoryMedia `json:"movie,omitempty"`
+	Series *HistoryMedia `json:"series,omitempty"`
+}
+
 // GetImportHistorySince returns all downloadFolderImported history records since the given date
 // by querying GET /api/v3/history/since. Passing a zero time fetches from epoch.
 // Used at startup to bootstrap arr_refs for media imported before webhooks were active,
@@ -364,7 +391,15 @@ func (a *Arr) GetImportHistorySince(since time.Time) []HistoryRecord {
 	} else {
 		date = since.UTC().Format(time.RFC3339)
 	}
-	url := "api/v3/history/since?date=" + gourl.QueryEscape(date)
+	query := gourl.Values{}
+	query.Set("date", date)
+	switch a.Type {
+	case Radarr:
+		query.Set("includeMovie", "true")
+	case Sonarr:
+		query.Set("includeSeries", "true")
+	}
+	url := "api/v3/history/since?" + query.Encode()
 	var records []HistoryRecord
 	resp, err := a.Request(http.MethodGet, url, nil, &records)
 	if err != nil || resp.StatusCode != http.StatusOK {

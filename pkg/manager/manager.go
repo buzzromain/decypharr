@@ -421,8 +421,8 @@ func (m *Manager) Start(ctx context.Context) error {
 	// Register Decypharr webhook in each configured ARR instance.
 	m.RegisterArrWebhooks()
 
-	// Sync arr files from ARR history for media imported before webhooks were active.
-	m.syncArrFiles()
+	// Sync arr media from ARR history for media imported before webhooks were active.
+	m.syncArrMedia()
 
 	// Close ready channel once, safe for multiple calls
 	m.readyOnce.Do(func() {

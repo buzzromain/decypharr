@@ -17,13 +17,13 @@ func TestDeleteOrphanedEntry_EntryMissing_NoOp(t *testing.T) {
 	unrelatedPath := filepath.Join("/media/tv", "GuardShow", "s01e01.mkv")
 
 	seedEntry(t, mgr, unrelatedInfohash)
-	if err := mgr.storage.UpsertArrFile(&storage.ArrFile{
+	if err := mgr.storage.UpsertArrMedia(&storage.ArrMedia{
 		ArrName:     "sonarr",
 		ManagedPath: unrelatedPath,
 		InfoHash:    unrelatedInfohash,
 		FileName:    "s01e01.mkv",
 	}); err != nil {
-		t.Fatalf("UpsertArrFile: %v", err)
+		t.Fatalf("UpsertArrMedia: %v", err)
 	}
 
 	entriesBefore, err := mgr.storage.Count()
@@ -52,17 +52,17 @@ func TestDeleteOrphanedEntry_EntryMissing_NoOp(t *testing.T) {
 		t.Fatal("missing entry was unexpectedly created")
 	}
 
-	missingRefs, err := mgr.storage.FindArrFilesByInfoHash(missingInfohash)
+	missingRefs, err := mgr.storage.FindArrMediaByInfoHash(missingInfohash)
 	if err != nil {
-		t.Fatalf("FindArrFilesByInfoHash(missing): %v", err)
+		t.Fatalf("FindArrMediaByInfoHash(missing): %v", err)
 	}
 	if len(missingRefs) != 0 {
 		t.Fatalf("unexpected arr files for missing infohash: %d", len(missingRefs))
 	}
 
-	keptRef, err := mgr.storage.GetArrFile(unrelatedPath)
+	keptRef, err := mgr.storage.GetArrMedia(unrelatedPath)
 	if err != nil {
-		t.Fatalf("GetArrFile(unrelated): %v", err)
+		t.Fatalf("GetArrMedia(unrelated): %v", err)
 	}
 	if keptRef == nil {
 		t.Fatal("unrelated arr file was deleted")
