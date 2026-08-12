@@ -34,10 +34,17 @@ func (s *Server) WebRoutes() http.Handler {
 	useV2 := os.Getenv("DECYPHARR_UI_V2") == "true"
 
 	// Static assets - always public
-	staticFS, _ := fs.Sub(assetsEmbed, "assets/build")
+	buildFS, _ := fs.Sub(assetsEmbed, "assets/build")
+	// Vite writes hashed JS/CSS into a nested "assets/" subdirectory by
+	// default (build.assetsDir); index.html references them at /assets/*.
+	hashedAssetsFS, _ := fs.Sub(buildFS, "assets")
 	imagesFS, _ := fs.Sub(imagesEmbed, "assets/images")
-	r.Handle("/assets/*", http.StripPrefix(s.urlBase+"assets/", http.FileServer(http.FS(staticFS))))
+	r.Handle("/assets/*", http.StripPrefix(s.urlBase+"assets/", http.FileServer(http.FS(hashedAssetsFS))))
 	r.Handle("/images/*", http.StripPrefix(s.urlBase+"images/", http.FileServer(http.FS(imagesFS))))
+	// Everything else Vite copies verbatim from web/public (favicons, logo,
+	// icons.svg) lands at the build root and is referenced by absolute root
+	// paths (e.g. /favicon.ico, /logo.png), so serve it as the final fallback.
+	r.NotFound(http.FileServer(http.FS(buildFS)).ServeHTTP)
 
 	// Version endpoint - always available regardless of UI mode
 	r.Get("/version", s.handleGetVersion)
