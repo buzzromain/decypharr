@@ -24,3 +24,14 @@ export const getCacheFiles = (hash: string) =>
 
 export const getAllCacheFiles = () =>
   apiClient.get<CacheFileStat[]>('/cache/files').then(r => r.data ?? [])
+
+export interface MountCacheActionResult {
+  status: string
+  cache: Record<string, number>
+}
+
+export const runMountCacheCleanup = () =>
+  apiClient.post<MountCacheActionResult>('/mount/cache/cleanup').then(r => r.data)
+
+export const purgeMountCache = () =>
+  apiClient.post<MountCacheActionResult>('/mount/cache/purge').then(r => r.data)

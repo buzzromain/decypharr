@@ -294,8 +294,8 @@ function GeneralTab({
           Virtual folders let you organize torrents using custom filters. Each folder appears in your mount.
         </p>
         <VirtualFolderList
-          value={form.custom_folders}
-          onChange={v => setField('custom_folders', v)}
+          value={form.virtual_folders}
+          onChange={v => setField('virtual_folders', v)}
         />
       </Section>
     </div>

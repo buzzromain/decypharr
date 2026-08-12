@@ -1,19 +1,21 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   Gauge, Radio, Server, HardDrive,
   Clock, MemoryStick, GitBranch, Cpu, Monitor,
   Database, ListTodo, Link2, Wrench,
   RefreshCw, CheckCircle2, AlertCircle,
   Download, Zap, Target, CircuitBoard,
-  Activity,
+  Activity, PlayCircle, Trash2,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { getStats, runSpeedTest, type StatsSnapshot, type SpeedTestResult } from '@/api/stats'
+import { runMountCacheCleanup, purgeMountCache } from '@/api/cache'
 import { formatSize, formatSpeed } from '@/lib/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { toast } from '@/hooks/use-toast'
 
 function formatUptime(seconds: number): string {
   if (!seconds) return '—'
@@ -337,8 +339,61 @@ function ProvidersTab({ stats }: { stats: StatsSnapshot }) {
 
 // ── Mount Tab ─────────────────────────────────────────────────────────────────
 
-function DFSStats({ detail }: { detail: Record<string, unknown> }) {
+function DFSStats({ detail, onRefetch }: { detail: Record<string, unknown>; onRefetch: () => void }) {
   const n = (k: string) => (detail[k] as number | undefined) ?? 0
+
+  const cleanupMutation = useMutation({
+    mutationFn: runMountCacheCleanup,
+    onSuccess: result => {
+      const cache = result.cache ?? {}
+      const warnings = cache.cleanup_warning_count ?? 0
+      const freedBytes = cache.cleanup_freed_bytes ?? 0
+      const removedItems = cache.cleanup_removed_items ?? 0
+      toast(
+        warnings > 0
+          ? `Cache cleanup completed with ${warnings} warning(s).`
+          : `Cache cleanup completed. Freed ${formatSize(freedBytes)} and evicted ${removedItems.toLocaleString()} file(s).`,
+        warnings > 0 ? 'warning' : 'default'
+      )
+      onRefetch()
+    },
+    onError: (err: any) => toast(`Cache cleanup failed: ${err.response?.data ?? err.message}`, 'error'),
+  })
+
+  const purgeMutation = useMutation({
+    mutationFn: purgeMountCache,
+    onSuccess: result => {
+      const cache = result.cache ?? {}
+      const warnings = cache.purge_warning_count ?? 0
+      const freedBytes = cache.purge_freed_bytes ?? 0
+      const removedItems = cache.purge_removed_items ?? 0
+      const skippedBusy = cache.purge_skipped_busy_items ?? 0
+      const skippedText = skippedBusy > 0 ? ` Skipped ${skippedBusy.toLocaleString()} active item(s).` : ''
+      toast(
+        warnings > 0
+          ? `Cache purge completed with ${warnings} warning(s).${skippedText}`
+          : `Cache purge completed. Freed ${formatSize(freedBytes)} and removed ${removedItems.toLocaleString()} file(s).${skippedText}`,
+        warnings > 0 ? 'warning' : 'default'
+      )
+      onRefetch()
+    },
+    onError: (err: any) => toast(`Cache purge failed: ${err.response?.data ?? err.message}`, 'error'),
+  })
+
+  function handlePurge() {
+    const cacheUsedNow = n('cache_total_size')
+    const cacheItemsNow = n('cache_item_count')
+    const cacheMaxNow = n('cache_max_size')
+    const usage = cacheMaxNow > 0 ? ` / ${formatSize(cacheMaxNow)}` : ' / unlimited'
+    if (
+      !confirm(
+        `Purge the entire DFS cache?\n\n${cacheItemsNow.toLocaleString()} cached file(s), ${formatSize(cacheUsedNow)}${usage}.\n\nThis removes all cached data from disk. It will be re-downloaded on next access.`
+      )
+    ) {
+      return
+    }
+    purgeMutation.mutate()
+  }
 
   const activeDownloads = n('cache_active_downloads')
   const downloadSpeed   = n('cache_download_speed')
@@ -371,6 +426,29 @@ function DFSStats({ detail }: { detail: Record<string, unknown> }) {
           sub={`${hits.toLocaleString()} hits / ${misses.toLocaleString()} misses`} color={hitClass} />
         <KpiCard icon={HardDrive} label="Active Files" value={activeFiles}
           sub={`Total tracked: ${totalFiles.toLocaleString()}`} color="text-secondary" />
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium text-muted-foreground">Cache Storage</div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => cleanupMutation.mutate()}
+            disabled={cleanupMutation.isPending || purgeMutation.isPending}
+          >
+            <PlayCircle size={14} className="mr-1" />
+            Run Cleanup
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePurge}
+            disabled={cleanupMutation.isPending || purgeMutation.isPending}
+          >
+            <Trash2 size={14} className="mr-1" />
+            Purge Cache
+          </Button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-lg border bg-card p-4 space-y-2">
@@ -470,7 +548,7 @@ function RcloneStats({ detail }: { detail: Record<string, unknown> }) {
   )
 }
 
-function MountTab({ stats }: { stats: StatsSnapshot }) {
+function MountTab({ stats, onRefetch }: { stats: StatsSnapshot; onRefetch: () => void }) {
   const mount = stats.mount
   if (!mount || !mount.type || mount.type === 'none' || !mount.enabled) {
     return (
@@ -493,7 +571,7 @@ function MountTab({ stats }: { stats: StatsSnapshot }) {
         </div>
       )
     }
-    return <DFSStats detail={detail} />
+    return <DFSStats detail={detail} onRefetch={onRefetch} />
   }
 
   if (!mount.ready) {
@@ -581,7 +659,7 @@ export default function StatsPage() {
             <ProvidersTab stats={stats} />
           </TabsContent>
           <TabsContent value="mount" className="mt-6">
-            <MountTab stats={stats} />
+            <MountTab stats={stats} onRefetch={refetch} />
           </TabsContent>
         </Tabs>
       )}

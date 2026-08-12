@@ -152,12 +152,43 @@ export interface AppConfig {
   auth_username?: string
 
   custom_folders?: Record<string, { filters?: Record<string, string> }>
+  virtual_folders?: VirtualFolder[]
 
   notifications?: Notifications
 }
 
+export interface VirtualFolderCondition {
+  field: string
+  operator: string
+  value: string
+  case_sensitive?: boolean
+}
+
+export interface VirtualFolder {
+  name: string
+  match?: 'all' | 'any'
+  include_bad?: boolean
+  conditions?: VirtualFolderCondition[]
+}
+
+export interface VirtualFolderPreviewItem {
+  name: string
+  provider?: string
+  protocol?: string
+  size: number
+}
+
+export interface VirtualFolderPreviewResult {
+  total: number
+  samples: VirtualFolderPreviewItem[]
+}
+
 export const getConfig = () => apiClient.get<AppConfig>('/config').then(r => r.data)
 export const updateConfig = (data: Partial<AppConfig>) => apiClient.post('/config', data)
+export const previewVirtualFolder = (folder: VirtualFolder, limit = 5) =>
+  apiClient
+    .post<VirtualFolderPreviewResult>('/virtual-folders/preview', { folder, limit })
+    .then(r => r.data)
 export const updateAuth = (data: { username: string; password: string; confirm_password: string }) =>
   apiClient.post('/update-auth', data)
 export const refreshToken = () => apiClient.post<{ token: string }>('/refresh-token').then(r => r.data)
