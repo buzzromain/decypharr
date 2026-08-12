@@ -43,5 +43,10 @@ export const getBrowseFiles = (group: string, torrent: string, params?: BrowsePa
 export const deleteBrowseTorrent = (id: string) =>
   apiClient.delete(`/browse/torrents/${id}`)
 
+export const deleteBrowseTorrents = (ids: string[]) =>
+  apiClient
+    .delete<{ success: boolean; count: number }>('/browse/torrents/batch', { data: { ids } })
+    .then(r => r.data)
+
 export const getDownloadUrl = (torrent: string, file: string) =>
   `/api/browse/download/${encodeURIComponent(torrent)}/${encodeURIComponent(file)}`

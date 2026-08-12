@@ -30,6 +30,7 @@ import {
   getBrowseGroup,
   getBrowseFiles,
   deleteBrowseTorrent,
+  deleteBrowseTorrents,
   getDownloadUrl,
   type BrowseEntry,
 } from '@/api/browse'
@@ -123,6 +124,25 @@ export default function BrowsePage() {
     }
   }
 
+  async function handleDeleteSelected() {
+    // Only rows backed by a real torrent (info_hash set, can_delete true) are
+    // eligible — a selected file-level row falls back to its path as the
+    // selection id and has no torrent to batch-delete.
+    const ids = entries
+      .filter(e => e.can_delete && e.info_hash && selected.has(e.info_hash))
+      .map(e => e.info_hash!)
+    if (ids.length === 0) return
+    if (!confirm(`Delete ${ids.length} selected torrent(s)?`)) return
+    try {
+      const result = await deleteBrowseTorrents(ids)
+      toast(`Deleted ${result.count} torrent(s)`)
+      setSelected(new Set())
+      queryClient.invalidateQueries({ queryKey: ['browse'] })
+    } catch {
+      toast('Failed to delete selected torrents', 'error')
+    }
+  }
+
   function handleDownload(entry: BrowseEntry) {
     const parts = entry.path.split('/').filter(Boolean)
     if (parts.length < 2) return
@@ -160,6 +180,12 @@ export default function BrowsePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BrowseBreadcrumb path={path} onNavigate={navigateTo} />
         <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <Button size="sm" variant="outline" onClick={handleDeleteSelected}>
+              <Trash2 size={13} />
+              Delete Selected ({selected.size})
+            </Button>
+          )}
           <Input
             placeholder="Search..."
             value={search}

@@ -16,6 +16,7 @@ import { AddModal } from '@/components/AddModal'
 import { ColumnToggle } from '@/components/ColumnToggle'
 import { useColumnVisibility, type ColumnId } from '@/hooks/useColumnVisibility'
 import { getQueueItems, deleteItem, deleteItems, type QueueItem } from '@/api/torrents'
+import { getConfig } from '@/api/config'
 import { toast } from '@/hooks/use-toast'
 import { formatSize, formatSpeed } from '@/lib/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -82,6 +83,8 @@ export default function QueuePage() {
     refetchInterval: 5000,
     retry: false,
   })
+
+  const { data: config } = useQuery({ queryKey: ['config'], queryFn: getConfig })
 
   const items      = data?.torrents   ?? []
   const categories = data?.categories ?? []
@@ -260,7 +263,13 @@ export default function QueuePage() {
                 <TableCell colSpan={visibleColCount} className="py-16">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Inbox size={40} className="opacity-30" />
-                    <p className="text-sm">No items in queue</p>
+                    {config?.managed_only ? (
+                      <p className="text-sm text-center max-w-xs">
+                        Managed-only mode is active. Torrents will appear here when added through your Arr apps.
+                      </p>
+                    ) : (
+                      <p className="text-sm">No items in queue</p>
+                    )}
                     <Button size="sm" onClick={() => setAddModalOpen(true)}>
                       <Plus size={14} />
                       Add Download
